@@ -1,0 +1,6 @@
+# controller_v2 第一棒所需依赖（不包含 paddleocr/paddlepaddle 大件）
+requests>=2.31.0
+pillow>=10.0.0
+pyautogui>=0.9.54
+pynput>=1.7.6
+pywin32>=306; platform_system == "Windows"

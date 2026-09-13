@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sg-bridge": {
+      "command": "python",
+      "args": ["-m", "sg_bridge.mcp_server"],
+      "cwd": "C:\\path\\to\\assistant_v0.1\\plugins\\sg_bridge",
+      "env": { "PYTHONIOENCODING": "utf-8" }
+    }
+  }
+}

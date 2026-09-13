@@ -1,0 +1,20 @@
+{
+  "_comment": "controller_v2 运行时配置。以 _ 开头的键为注释键，加载时会被 core.config 自动跳过。vision_api_key 留空，真实 key 走环境变量 DEEPSEEK_API_KEY_DECISION / DEEPSEEK_API_KEY（或 secrets.json）。",
+  "multimodal_model_tier": "pro",
+  "vision": {
+    "base_url": "https://api.deepseek.com",
+    "vision_api_key": "",
+    "connect_timeout": 15,
+    "request_timeout": 180,
+    "default_tier": "pro",
+    "model_tiers": {
+      "mini": "deepseek-v4.1-flash-expires-on-0910",
+      "turbo": "deepseek-v4.1-flash-expires-on-0910",
+      "pro": "deepseek-v4.1-flash-expires-on-0910"
+    },
+    "image_sample": {
+      "short_side": 640,
+      "jpeg_quality": 80
+    }
+  }
+}

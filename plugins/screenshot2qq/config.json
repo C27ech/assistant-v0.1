@@ -1,0 +1,11 @@
+{
+  "_说明": "截图发 QQ 插件配置。user_id = 你自己的 QQ 号（必填，否则插件会直接报错退出）；ws_url = OneBot 反向 WebSocket 地址。",
+  "ws_url": "ws://127.0.0.1:3001",
+  "token": "",
+  "user_id": 0,
+  "delete_temp_files": true,
+  "timeout": 10.0,
+  "image_format": "PNG",
+  "temp_dir": null
+}
+

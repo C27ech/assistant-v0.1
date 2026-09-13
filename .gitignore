@@ -1,0 +1,50 @@
+# ===== 密钥与本地配置（绝对不要提交）=====
+.env
+*.env
+!.env.example
+
+# ===== 运行时数据 =====
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+runtime/                 # PID 名册 / 心跳
+logs/                    # 插件子进程输出落盘
+watchdog.log
+assistant_run.log
+assistant_err.log
+
+# ===== 截图 / 抓帧 / 调试产物（里面可能有你的屏幕内容）=====
+*.png
+*.jpg
+*.jpeg
+*.bmp
+frames/
+out/
+shots/
+*.DDS                    # 游戏贴图，别提交
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ===== 备份 / 临时 =====
+*.bak
+*.bak_*
+*.typo-bak
+# 只忽略「仓库根目录」下的临时脚本，别误伤 __init__.py（踩过这个坑）
+/_*.py
+/_*.txt
+/_*.json
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+.DS_Store
