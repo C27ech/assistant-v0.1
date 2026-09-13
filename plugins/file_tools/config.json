@@ -1,0 +1,16 @@
+{
+  "_说明": "读文件插件配置。roots=允许读取的范围：\"*\"=整台电脑（自动枚举所有盘），也可写成具体目录列表；default_path=不给路径时的默认起点（留空=自动探测用户桌面）；deny_patterns=额外禁读子串（内置的密钥/凭据/登录态规则不可取消，只能追加）。安全性请先读 README。",
+  "roots": [
+    "*"
+  ],
+  "default_path": "",
+  "deny_patterns": [],
+  "max_file_mb": 8,
+  "max_output_chars": 12000,
+  "max_list_entries": 200,
+  "max_find_results": 40,
+  "max_grep_matches": 30,
+  "grep_max_files": 3000
+}
+
+

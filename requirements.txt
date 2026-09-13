@@ -1,0 +1,36 @@
+# ============================================================================
+# Assistant v0.1 —— 全部依赖（助手本体 + 随仓库附带的 5 个插件）
+#
+#   pip install -r requirements.txt
+#
+# 只想跑助手本体（不要桌面控制/游戏自动化这些），装下面「助手本体」那一段就够。
+# 平台相关的依赖用 PEP 508 标记，非 Windows 上会自动跳过。
+# ============================================================================
+
+# ---------------- 助手本体 ----------------
+openai>=1.40.0              # OpenAI 兼容客户端（DeepSeek / 豆包 / 本地服务都走它）
+python-dotenv>=1.0.1        # 读 .env
+requests>=2.31.0            # 企业微信回调 / 各种 HTTP
+flask>=3.0.0                # 企业微信回调服务器
+pycryptodome>=3.19.0        # 企业微信 AES 加解密
+websocket-client>=1.7.0     # QQ 渠道（OneBot 反向 WebSocket）
+wcferry>=39.5.0; sys_platform == "win32"   # 个人微信 hook（仅 Windows）
+
+# ---------------- 插件：web_tools（联网查资料）----------------
+beautifulsoup4>=4.12.0      # 解析搜索页 / arXiv 的 XML
+playwright>=1.40.0          # 无头浏览器读网页正文（首次用需装浏览器，见该插件 README）
+
+# ---------------- 插件：file_tools（读文件）----------------
+# 纯标准库，无需额外依赖
+
+# ---------------- 插件：screenshot2qq（截图发 QQ）----------------
+pillow>=10.0.0              # 截图 + 压缩
+pyautogui>=0.9.54           # 抓屏
+
+# ---------------- 插件：controller_v2（桌面控制）----------------
+pynput>=1.7.6               # 键鼠注入
+pywin32>=306; platform_system == "Windows"   # Win32 窗口/输入接口
+
+# ---------------- 插件：sg_bridge（游戏自动化示例）----------------
+# 依赖同 controller_v2（pillow / pyautogui / pynput / pywin32）+ 可选 OCR：
+#   pip install pytesseract 并另外装 Tesseract-OCR 本体和语言包

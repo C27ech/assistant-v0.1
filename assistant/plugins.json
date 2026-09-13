@@ -1,0 +1,311 @@
+{
+  "desktop_task_v2": {
+    "description": "用桌面控制器 controller_v2 在 Windows 桌面上执行一个自然语言任务（打开程序、点击界面、输入文字、操作软件等）。它会自动走「接口优先 + 视觉兜底」。当用户让你操作电脑桌面时调用。",
+    "command": [
+      "python",
+      "main.py",
+      "{task}"
+    ],
+    "cwd": "plugins/controller_v2",
+    "timeout": 300,
+    "params": {
+      "task": {
+        "type": "string",
+        "description": "要在桌面上执行的任务，用自然语言描述，例如「打开记事本并输入 hello」",
+        "required": true
+      }
+    }
+  },
+  "send_screenshot": {
+    "description": "截取所有显示器屏幕，并直接把截图发到用户的 QQ 私聊（用户会立刻在 QQ 上收到图片）。当用户说「截图给我」「把屏幕发我看看」时调用。",
+    "command": [
+      "python",
+      "main.py"
+    ],
+    "cwd": "plugins/screenshot2qq",
+    "timeout": 60,
+    "params": {}
+  },
+  "sg_games": {
+    "description": "查看石头门四作（STEINS;GATE / SG0 / Phenogram / My Darling's Embrace）是否安装、是否正在运行。操作游戏前先调它确认状态。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "list_games"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 30,
+    "params": {}
+  },
+  "sg_attach": {
+    "description": "把石头门游戏窗口附着为操作目标（会自动切到前台 + 切换英文输入法，防止中文输入法吃掉按键）。附着后其它 sg_ 工具默认作用于它。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "attach",
+      "target={game}"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 30,
+    "params": {
+      "game": {
+        "type": "string",
+        "description": "作品：SG / SG0 / SGLBP / SGMDE",
+        "required": true
+      }
+    }
+  },
+  "sg_status": {
+    "description": "查看石头门操作会话状态：当前附着哪个游戏窗口、前台窗口、DPI 模式、光标位置。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "status"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 30,
+    "params": {}
+  },
+  "sg_action": {
+    "description": "对石头门游戏执行一个语义动作。常用 action：advance（推进对话）/ confirm（确定）/ back（返回）/ menu（系统菜单）/ help（按键说明）/ config（设置）/ tips（用语辞典）/ skip（快进）/ auto（自动播放）/ phone（打开手机）/ phone_close（收起手机）/ save（存档界面）/ load（读档界面）。⚠️危险动作 quit（退出游戏）/ title（回标题）/ quick_save / quick_load 必须先征得用户同意，再传 allow_dangerous=true。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "game_action",
+      "action={action}",
+      "game={game}",
+      "allow_dangerous={allow_dangerous}"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 120,
+    "params": {
+      "action": {
+        "type": "string",
+        "description": "动作名，如 advance / phone / skip / save",
+        "required": true
+      },
+      "game": {
+        "type": "string",
+        "description": "作品 SG/SG0/SGLBP/SGMDE（可省略，用已附着的）"
+      },
+      "allow_dangerous": {
+        "type": "boolean",
+        "description": "危险动作需 true（且必须先问过用户）"
+      }
+    }
+  },
+  "sg_read_screen": {
+    "description": "读取石头门游戏当前画面上的文字（OCR），返回每一行文字及其坐标。用户说「念一下现在屏幕上是什么」「这段写了啥」时调用，然后把文字转述给用户。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "read_screen",
+      "target={game}"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 60,
+    "params": {
+      "game": {
+        "type": "string",
+        "description": "作品（可省略，用已附着的）"
+      }
+    }
+  },
+  "sg_click_text": {
+    "description": "在石头门游戏画面上找到指定文字并点击它的中心（OCR 定位，模糊匹配容忍错字）。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "click_text",
+      "text={text}",
+      "target={game}"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 60,
+    "params": {
+      "text": {
+        "type": "string",
+        "description": "要点击的文字，如 收件箱 / 回复",
+        "required": true
+      },
+      "game": {
+        "type": "string",
+        "description": "作品（可省略）"
+      }
+    }
+  },
+  "sg_key": {
+    "description": "给石头门游戏敲一个按键（兜底用，常见需求请优先用 sg_action）。key 如 enter / space / escape / up / down / z / x / ctrl。",
+    "command": [
+      "python",
+      "-m",
+      "sg_bridge.cli",
+      "call",
+      "key_press",
+      "key={key}",
+      "target={game}"
+    ],
+    "cwd": "plugins/sg_bridge",
+    "timeout": 30,
+    "params": {
+      "key": {
+        "type": "string",
+        "description": "键名，如 enter / down / z",
+        "required": true
+      },
+      "game": {
+        "type": "string",
+        "description": "作品（可省略）"
+      }
+    }
+  },
+  "web_search": {
+    "description": "联网搜索资料。会自动路由：普通问题走网页搜索（Bing，已过滤导航站/下载站/内容农场与打不开的站）；学术或论文类问题（查询里含 论文/文献/综述/研究/paper/survey/benchmark 等，或英文技术词容易被 Bing 降级成词典查询的）自动改走 arXiv + OpenAlex + Crossref 三个学术库，返回带编号的一手文献。结果标注来源可信度：［文献］=学术库一手论文（最可信）＞［权威］=官方文档/代码仓库/政府教育站 ＞［社区经验］=知乎/CSDN 等技术社区（有参考价值但非权威）＞［百科·可信度低］=可自由编辑的百科站（门槛低、错漏多，只能当线索）。⚠️ 引用要按可信度把握分寸：百科内容绝不能当定论，人名/时间/数字/结论这类关键事实必须用［文献］或［权威］来源交叉验证；拿不准就如实告诉用户「这条来自百科，不够可靠」。当用户问「帮我查一下…」「…是什么」而你手头信息不确定时调用；摘要不够时再用 fetch_page 读全文。",
+    "command": [
+      "python",
+      "main.py",
+      "search",
+      "{query}",
+      "--source={source}"
+    ],
+    "cwd": "plugins/web_tools",
+    "timeout": 120,
+    "params": {
+      "query": {
+        "type": "string",
+        "description": "查询词（推荐直接用专有名词或核心术语，别堆无关词）",
+        "required": true
+      },
+      "source": {
+        "type": "string",
+        "description": "auto=自动路由（默认，一般不用传）；web=只搜网页；academic=只查学术论文库。想找论文/研究时传 academic 更准。"
+      }
+    }
+  },
+  "fetch_page": {
+    "description": "读取指定网页的正文（用无头浏览器渲染，能拿到 JS 动态内容、也能绕简单反爬）。先用 web_search 拿到链接，再把链接传进来读全文，然后据实回答用户。⚠️ 两条纪律：① 维基百科 wikipedia.org 在本机网络下打不开（要白等 70 秒），别抓它，百科类改用百度百科/萌娘百科/搜狗百科；② 每次查资料最多抓 3 个页面，挑最相关的，抓十几个页面会让你几分钟都回不了话。摘要已经够回答时就别抓了。",
+    "command": [
+      "python",
+      "main.py",
+      "fetch",
+      "{url}"
+    ],
+    "cwd": "plugins/web_tools",
+    "timeout": 60,
+    "params": {
+      "url": {
+        "type": "string",
+        "description": "网页链接（http/https）",
+        "required": true
+      }
+    }
+  },
+  "read_file": {
+    "description": "读取本机文本文件的内容（可读整台电脑上的文件）。读完请用你自己的话总结要点或引用关键片段，不要把整篇原文照贴到聊天里。⚠️ 安全策略硬性拦截这些：含密钥/凭据的文件（.env、config.json、私钥/证书、SSH key、浏览器 Cookie 与登录数据、云凭据、QQ 登录态、Windows 凭据库等）——被拦了就换别的文件，别反复试。文件很长时输出会自动截断并提示，用 start_line 接着读下一段。当用户说「读一下这个文件」「看看 xxx.txt 里写了什么」「帮我分析这份文档」时调用。",
+    "command": [
+      "python",
+      "main.py",
+      "read",
+      "{path}",
+      "--start={start_line}",
+      "--lines={lines}"
+    ],
+    "cwd": "plugins/file_tools",
+    "timeout": 60,
+    "params": {
+      "path": {
+        "type": "string",
+        "description": "文件路径（绝对路径，或相对桌面根目录的路径）",
+        "required": true
+      },
+      "start_line": {
+        "type": "integer",
+        "description": "从第几行开始读（1 起，默认 1）。看到「本次已截断」提示时用它续读。"
+      },
+      "lines": {
+        "type": "integer",
+        "description": "本次读多少行（默认读到输出上限）"
+      }
+    }
+  },
+  "list_dir": {
+    "description": "列出某个目录下的文件和子目录（带大小；受安全保护的文件会标注「⛔受保护」）。用户说「我桌面上有什么」「看看 xxx 文件夹里有什么」时调用。",
+    "command": [
+      "python",
+      "main.py",
+      "list",
+      "{path}"
+    ],
+    "cwd": "plugins/file_tools",
+    "timeout": 60,
+    "params": {
+      "path": {
+        "type": "string",
+        "description": "目录路径；省略则列出默认根目录（桌面）"
+      }
+    }
+  },
+  "find_files": {
+    "description": "按文件名通配符在本机找文件（如 *.md、*报告*、config*）。用户说「找一下那个 xxx 文件」「我桌面上有没有 xxx」时调用；找到路径后可以用 read_file 读内容。",
+    "command": [
+      "python",
+      "main.py",
+      "find",
+      "{pattern}",
+      "--root={root}"
+    ],
+    "cwd": "plugins/file_tools",
+    "timeout": 90,
+    "params": {
+      "pattern": {
+        "type": "string",
+        "description": "通配符，如 *.md / *报告* / config*",
+        "required": true
+      },
+      "root": {
+        "type": "string",
+        "description": "搜索起点目录（省略则从桌面开始）"
+      }
+    }
+  },
+  "grep_files": {
+    "description": "在文件内容里搜关键词或正则，返回「文件:行号: 内容」，用来定位「哪个文件里写了 xxx」。用户问「哪里提到过 xxx」「哪个文件里有这段」时调用。注意：它只搜文本文件，且会跳过受保护文件。",
+    "command": [
+      "python",
+      "main.py",
+      "grep",
+      "{pattern}",
+      "--root={root}",
+      "--ext={ext}"
+    ],
+    "cwd": "plugins/file_tools",
+    "timeout": 120,
+    "params": {
+      "pattern": {
+        "type": "string",
+        "description": "要搜的词或正则表达式",
+        "required": true
+      },
+      "root": {
+        "type": "string",
+        "description": "搜索起点目录（省略则从桌面开始）"
+      },
+      "ext": {
+        "type": "string",
+        "description": "限定后缀，逗号分隔，如 .py,.md（省略则搜所有文本文件）"
+      }
+    }
+  }
+}

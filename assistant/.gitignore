@@ -1,0 +1,28 @@
+# 环境与密钥
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# 数据库
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# 日志
+*.log
+logs/
+
+# 运行时（主进程 PID 名册 / 心跳文件，由 main.py 生成，不入库）
+runtime/
+
+# IDE
+.idea/
+.vscode/
