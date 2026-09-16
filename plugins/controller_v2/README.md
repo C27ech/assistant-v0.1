@@ -72,9 +72,36 @@ if decision["status"] == "确定":
 - `base_url` 默认 `https://ark.cn-beijing.volces.com/api/v3`。
 - 模型档位：`mini` / `turbo` / `pro`，默认决策档位 `pro`。
 
+## 屏幕分辨率 / 缩放自适应
+
+屏幕几何统一取自 `core.screen` 的屏幕画像（DPI 感知之后的物理像素）：
+
+| 项 | 实现 | 本机（1920x1200 @125%） |
+| --- | --- | --- |
+| DPI 感知 | `ensure_dpi_awareness()`：Per-Monitor-V2 → per-monitor → system 逐级降级 | per-monitor |
+| 物理 / 逻辑分辨率 | `get_screen_profile()`：物理分辨率、缩放、每屏 dpi、虚拟桌面 rect | 物理 1920x1200 / 逻辑 1536x960 |
+| 分辨率 / 缩放变化 | 指纹自检，变化后在下次调用重新采样 | — |
+| 截图覆盖范围 | 单屏截主屏；多屏截整块虚拟桌面（`screen.all_screens: auto`） | 主屏 |
+| 送入模型的帧 | 长边 = `clamp(0.6667 * 逻辑长边, 768, 2048)`，只缩不放 | 1024x640 |
+| 模型图片采样 | `resolve_image_sample()`：短边 = `clamp(0.6667 * 物理短边 / 缩放, 384, 1080)` | 640 |
+| 坐标参照系 | `core.coord` 的坐标帧 = 本轮截图覆盖的物理矩形（原点可为负） | (0,0,1920,1200) |
+
+不同分辨率 / 缩放下送入模型的帧尺寸：1080p@100% → 1280x720；1366x768@100% → 911x512；
+4K@150% → 1707x960；8K → 长边封顶 2048；双屏 1920x1200 → 截图 3840x1200、帧 2048x640，归一化坐标跨屏。
+
+每轮决策 prompt 里带一段 `【屏幕几何信息】`（`core.screen.describe_screen()` 生成），
+内容是物理分辨率、Windows 缩放、显示器数量和 0~1000 对应的物理矩形。
+
+自检：
+
+```bash
+python -m core.screen      # 打印屏幕画像、各分辨率下的帧尺寸，并实拍一帧
+```
+
 ## 冒烟自测
 
 ```bash
 python -m py_compile core/*.py action/*.py
 python -c "import core.coord, core.guard, core.config, core.screen, core.vision_client, action.action"
+python -m core.screen
 ```

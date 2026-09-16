@@ -5,14 +5,14 @@
 
 注册方式见 [`../docs/PLUGIN_PROTOCOL.md`](../docs/PLUGIN_PROTOCOL.md)。
 
-## 一、随仓库附带的 4 个插件（8 个工具）
+## 一、随仓库附带的 4 个插件（10 个工具）
 
 | 插件 | 目录 | 工具 | 依赖 | 说明 |
 |------|------|------|------|------|
 | **file_tools** | [`file_tools/`](file_tools/) | `read_file` `list_dir` `find_files` `grep_files` | 纯标准库 | 读本机文本 / 列目录 / 找文件 / 搜内容；**敏感文件硬拦截** |
 | **web_tools** | [`web_tools/`](web_tools/) | `web_search` `fetch_page` | requests, bs4, playwright | 联网搜索（学术自动改道 + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | [`controller_v2/`](controller_v2/) | `desktop_task_v2` | requests, pillow, pyautogui, pynput, pywin32 | 自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
-| **screenshot2qq** | [`screenshot2qq/`](screenshot2qq/) | `send_screenshot` | pillow, pyautogui | 截全屏并直接发到你的 QQ 私聊 |
+| **screenshot2qq** | [`screenshot2qq/`](screenshot2qq/) | `send_screenshot` `list_windows` `list_monitors` | pillow, websocket-client | 截全屏 / 指定窗口 / 某台显示器 / 一块区域并直接发到你的 QQ 私聊；图过大自动缩小；含分辨率/缩放自适应 |
 
 > 每个插件目录里都有自己的 README，写清了用法、参数、踩过的坑。
 

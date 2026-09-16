@@ -13,8 +13,22 @@
       "pro": "deepseek-v4.1-flash-expires-on-0910"
     },
     "image_sample": {
+      "_comment": "adaptive=true 时短边 = clamp(0.6667 * 主屏物理短边 / 屏幕缩放, min, max)（本机 1200/1.25*0.6667=640；4K@150% 得 960，1366x768 得 512）；设 false 则固定用 short_side。",
+      "adaptive": true,
       "short_side": 640,
-      "jpeg_quality": 80
+      "jpeg_quality": 80,
+      "min_short_side": 384,
+      "max_short_side": 1080
+    }
+  },
+  "screen": {
+    "_comment": "屏幕分辨率 / 缩放 / 多显示器自适应。all_screens: auto=多显示器时把整块虚拟桌面拼成一帧（单屏时只截主屏），true/false 可强制。frame: 模型帧长边 = clamp(long_side_ratio * 逻辑长边, min_long_side, max_long_side)，本机 1920x1200@125%（逻辑 1536x960）得 1024x640；换 4K 或其他缩放时按公式变化。",
+    "all_screens": "auto",
+    "frame": {
+      "long_side_ratio": 0.6667,
+      "min_long_side": 768,
+      "max_long_side": 2048,
+      "jpeg_quality": 85
     }
   }
 }

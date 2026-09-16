@@ -18,7 +18,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.screen import capture_screenshot  # noqa: E402
+from core.screen import (  # noqa: E402
+    capture_screenshot,
+    describe_screen,
+    get_screen_profile,
+)
 
 
 def _list_windows() -> list:
@@ -81,6 +85,21 @@ def main() -> int:
 
     task = " ".join(args).strip()
 
+    # 屏幕画像（分辨率 / 缩放 / 多显示器布局）：坐标换算与截图都以此为准。
+    profile = get_screen_profile(force=True)
+    print("SCREEN " + describe_screen(profile).replace("\n", " | "))
+    for monitor in profile["monitors"]:
+        print(
+            "MONITOR {index} rect={rect} work={work} dpi={dpi} scale={scale} primary={primary}".format(
+                index=monitor["index"],
+                rect=monitor["rect"],
+                work=monitor["work_rect"],
+                dpi=monitor["dpi"],
+                scale=monitor["scale"],
+                primary=monitor["primary"],
+            )
+        )
+
     shot = capture_screenshot(out)
     print("SCREENSHOT " + shot)
 
@@ -95,9 +114,9 @@ def main() -> int:
         )
 
     if task:
-        from vision_exec.executor import _chat
+        from vision_exec.executor import _chat_single
 
-        answer = _chat(shot, task, tier="pro")
+        answer = _chat_single(shot, task, tier="pro")
         print("VISION_ANSWER_BEGIN")
         print(answer)
         print("VISION_ANSWER_END")

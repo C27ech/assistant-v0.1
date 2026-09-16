@@ -17,13 +17,92 @@
     }
   },
   "send_screenshot": {
-    "description": "截取所有显示器屏幕，并直接把截图发到用户的 QQ 私聊（用户会立刻在 QQ 上收到图片）。当用户说「截图给我」「把屏幕发我看看」时调用。",
+    "description": "截图并发到用户的 QQ 私聊。默认截全部显示器（target=all）。截指定窗口用 target=window，配 window（窗口标题片段或进程名）或 hwnd；截前台窗口用 target=active；截某一台显示器用 target=screen，配 monitor（序号或 all）；截屏幕上一块矩形用 target=region，配 region=x,y,w,h。窗口标题不确定时先调 list_windows，显示器序号用 list_monitors 查。窗口被其它窗口挡住也能截到；窗口最小化时截不到，会在结果里说明。图片过大时会自动缩小后再发送。",
     "command": [
       "python",
-      "main.py"
+      "main.py",
+      "--target={target}",
+      "--window={window}",
+      "--hwnd={hwnd}",
+      "--monitor={monitor}",
+      "--region={region}",
+      "--client-area={client_area}",
+      "--scale={scale}",
+      "--max-width={max_width}",
+      "--out={out}"
     ],
     "cwd": "plugins/screenshot2qq",
-    "timeout": 60,
+    "timeout": 90,
+    "params": {
+      "target": {
+        "type": "string",
+        "description": "截哪里：all=全部显示器（默认，不传即此）/ window=指定窗口（配 window 或 hwnd）/ active=当前前台窗口 / screen=某台显示器（配 monitor）/ region=屏幕上一块区域（配 region）"
+      },
+      "window": {
+        "type": "string",
+        "description": "窗口标题的片段（不区分大小写，也可以写进程名，如 chrome / wechat / notepad）。不确定标题先调 list_windows"
+      },
+      "hwnd": {
+        "type": "string",
+        "description": "窗口句柄（如 0x00190B54），用来精确指定同名窗口里的某一个；一般不用，优先用 window"
+      },
+      "monitor": {
+        "type": "string",
+        "description": "显示器序号（从 1 开始）或 all=每台各截一张；target=screen 时使用，先用 list_monitors 查"
+      },
+      "region": {
+        "type": "string",
+        "description": "屏幕区域，格式 x,y,w,h（左上角坐标 + 宽高，物理像素）。target=region 时必须给"
+      },
+      "client_area": {
+        "type": "boolean",
+        "description": "true=只截窗口内容区（去掉标题栏和边框）；默认 false=连标题栏一起截"
+      },
+      "scale": {
+        "type": "number",
+        "description": "按倍数缩放后再发，如 0.5 缩小一半（图太大/发送慢时用）；默认原尺寸"
+      },
+      "max_width": {
+        "type": "integer",
+        "description": "限制最宽像素（只缩不放），如 1600；一般不用，用 scale 就够"
+      },
+      "out": {
+        "type": "string",
+        "description": "同时在电脑上另存一份到这个文件或目录（例如 C:\\Users\\<你的用户名>\\Desktop）；不想存就别传"
+      }
+    }
+  },
+  "list_windows": {
+    "description": "列出当前打开的可见窗口：标题、hwnd、进程名、位置尺寸、是否前台或最小化。按标题找窗口时先调它，再把标题片段传给 send_screenshot 的 window 参数。",
+    "command": [
+      "python",
+      "main.py",
+      "--list-windows",
+      "--filter={filter}",
+      "--include-minimized={include_minimized}"
+    ],
+    "cwd": "plugins/screenshot2qq",
+    "timeout": 30,
+    "params": {
+      "filter": {
+        "type": "string",
+        "description": "只列出标题/进程名里含这个词的窗口（如 微信、chrome、notepad）；不筛就全部列出"
+      },
+      "include_minimized": {
+        "type": "boolean",
+        "description": "true=连最小化的窗口也一起列出（默认只列可见的）"
+      }
+    }
+  },
+  "list_monitors": {
+    "description": "列出显示器：序号、分辨率、在桌面上的位置、是否主屏、Windows 缩放百分比。按显示器截图时先调它取序号，再传给 send_screenshot 的 monitor 参数。",
+    "command": [
+      "python",
+      "main.py",
+      "--list-monitors"
+    ],
+    "cwd": "plugins/screenshot2qq",
+    "timeout": 30,
     "params": {}
   },
   "web_search": {

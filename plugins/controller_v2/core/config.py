@@ -305,10 +305,127 @@ def resolve_ark_api_key(
     return resolve_vision_api_key(cfg=cfg, project_root=project_root, provider=None)
 
 
+# --------------------------------------------------------------------------- #
+# 屏幕 / 分辨率 / 缩放相关配置（自适应：分辨率或缩放变化时自动改采样，无需改配置）
+# --------------------------------------------------------------------------- #
+_IMAGE_SAMPLE_DEFAULTS: Dict[str, Any] = {
+    "adaptive": True,       # true=按屏幕逻辑分辨率自适应；false=始终用 short_side
+    "short_side": 640,      # 固定模式下的短边像素
+    "jpeg_quality": 80,
+    "min_short_side": 384,  # 自适应下限（小屏省流量）
+    "max_short_side": 1080, # 自适应上限（防止 8K/超高缩放时图太大）
+}
+
+
+def _as_bool(value: Any, default: bool = True) -> bool:
+    """宽松解析布尔配置（true/1/"on"/"yes" 都算真）。"""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("1", "true", "yes", "on", "y"):
+        return True
+    if text in ("0", "false", "no", "off", "n"):
+        return False
+    return default
+
+
+def screen_config(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """返回合并了默认值的 screen 配置段。
+
+    :returns: ``{"all_screens": "auto", "frame": {"long_side_ratio", "min_long_side",
+              "max_long_side", "jpeg_quality"}}``。
+
+    本函数不导入 core.screen（避免核心库互相依赖），默认值在 core.screen 里同样有一份。
+    """
+    data = cfg if isinstance(cfg, dict) else load_config()
+    section = data.get("screen") if isinstance(data, dict) else None
+    merged: Dict[str, Any] = dict(section) if isinstance(section, dict) else {}
+
+    frame = {
+        "long_side_ratio": 0.6667,
+        "min_long_side": 768,
+        "max_long_side": 2048,
+        "jpeg_quality": 85,
+    }
+    user_frame = merged.get("frame")
+    if isinstance(user_frame, dict):
+        frame.update({key: value for key, value in user_frame.items() if value is not None})
+    merged["frame"] = frame
+    merged.setdefault("all_screens", "auto")
+    return merged
+
+
+def resolve_image_sample(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """解析「送给视觉模型的图片采样参数」，按屏幕分辨率 / 缩放自适应。
+
+    自适应规则（``vision.image_sample.adaptive = true``，默认开）：
+        short_side = clamp(long_side_ratio * 主屏物理短边 / 屏幕缩放, min, max)
+    即按「每个逻辑像素对应多少图片像素」保持等效：
+        本机 1200 / 1.25 * 0.6667 ≈ 640；
+        4K@150% -> 960（大字面更清晰）；1366x768@100% -> 512（省流量）。
+    只有缩小（short_side 是上限），不会把已经自适应过的小图再放大。
+
+    :returns: ``{"short_side", "jpeg_quality", "adaptive", "source"}``。
+    """
+    data = cfg if isinstance(cfg, dict) else load_config()
+    vision = data.get("vision") if isinstance(data, dict) else None
+    sample = vision.get("image_sample") if isinstance(vision, dict) else None
+
+    merged: Dict[str, Any] = dict(_IMAGE_SAMPLE_DEFAULTS)
+    if isinstance(sample, dict):
+        merged.update({key: value for key, value in sample.items() if value is not None})
+
+    try:
+        short_side = int(merged["short_side"])
+    except (TypeError, ValueError):
+        short_side = int(_IMAGE_SAMPLE_DEFAULTS["short_side"])
+    try:
+        quality = int(merged["jpeg_quality"])
+    except (TypeError, ValueError):
+        quality = int(_IMAGE_SAMPLE_DEFAULTS["jpeg_quality"])
+
+    adaptive = _as_bool(merged.get("adaptive"), True)
+    source = "fixed"
+
+    if adaptive:
+        try:
+            from .screen import get_frame_sampling, get_screen_profile
+
+            profile = get_screen_profile()
+            ratio = float(get_frame_sampling(data)["long_side_ratio"])
+            scale_ref = float(profile.get("max_scale") or profile.get("scale") or 1.0)
+            if scale_ref <= 0:
+                scale_ref = 1.0
+
+            logical_short = min(profile["physical_size"]) / scale_ref
+            target = int(round(ratio * logical_short))
+
+            low = int(merged["min_short_side"])
+            high = int(merged["max_short_side"])
+            target = max(low, min(high, target))
+
+            if target != short_side:
+                source = "adaptive"
+            short_side = target
+        except Exception:  # noqa: BLE001 - 自适应失败时退回固定值
+            source = "fixed(fallback)"
+
+    return {
+        "short_side": short_side,
+        "jpeg_quality": quality,
+        "adaptive": adaptive,
+        "source": source,
+    }
+
+
 __all__ = [
     "find_project_root",
     "default_config_path",
     "load_config",
     "resolve_vision_api_key",
     "resolve_ark_api_key",
+    "screen_config",
+    "resolve_image_sample",
 ]

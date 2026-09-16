@@ -5,6 +5,9 @@
 「卡死无法完成」并终止，避免无意义烧钱。
 
 动作 schema 与 ``action.action`` 层保持一致：坐标一律 0~1000 千分比整数。
+prompt 里会注入一段由 core.screen.describe_screen() 生成的「屏幕几何信息」
+（物理/逻辑分辨率、Windows 缩放、显示器数量、坐标参照系），
+这样模型在不同分辨率 / 缩放的机器上都能把坐标落在正确位置。
 """
 
 from __future__ import annotations
@@ -16,6 +19,17 @@ from typing import Any, Dict, Optional
 
 from core.guard import ALLOWED_ACTIONS
 
+# 没有屏幕几何信息时的兜底说明（保证旧调用方 prompt 结构完整）。
+_DEFAULT_SCREEN_INFO = (
+    "（未提供具体屏幕几何：请把坐标理解为相对整张截图的 0~1000 归一化比例）"
+)
+
+
+def _screen_info_text(screen_info: Optional[str]) -> str:
+    """规整屏幕几何描述文本；空值用兜底说明。"""
+    text = str(screen_info or "").strip()
+    return text or _DEFAULT_SCREEN_INFO
+
 # ---------------------------------------------------------------------------
 # prompt 模板
 # ---------------------------------------------------------------------------
@@ -24,6 +38,10 @@ _DECISION_PROMPT = """你是 Windows 桌面自动化控制器。请观察当前�
 
 任务：__TASK__
 当前是第 __ROUND__ 轮尝试（最多 __MAX_ROUNDS__ 轮）。
+
+【屏幕几何信息（由程序按本机实际分辨率 / Windows 缩放 / 显示器布局生成）】
+__SCREEN_INFO__
+坐标一律相对这张截图归一化：截图左上角=(0,0)，右下角=(1000,1000)，与截图像素尺寸、屏幕分辨率、缩放比例无关。
 
 必须只输出一个 JSON 对象（不要 Markdown 代码块、不要任何额外文字），格式如下：
 {
@@ -70,6 +88,10 @@ __RETRIEVED_HISTORY__
 
 本轮消息中附带多张图片：越靠后的越接近当前状态，最后一张是当前屏幕截图。
 
+【屏幕几何信息（由程序按本机实际分辨率 / Windows 缩放 / 显示器布局生成）】
+__SCREEN_INFO__
+坐标一律相对「最后一张当前截图」归一化：截图左上角=(0,0)，右下角=(1000,1000)，与截图像素尺寸、屏幕分辨率、缩放比例无关。多显示器时这张截图是整块虚拟桌面拼接图，坐标同样按整张图归一化。
+
 必须只输出一个 JSON 对象（不要 Markdown 代码块、不要任何额外文字），格式如下：
 {
   "status": "完成|确定|不确定|卡死",
@@ -106,6 +128,9 @@ _VERIFY_PROMPT = """你是 Windows 桌面自动化验证器。请根据当前截
 
 预期：__EXPECTATION__
 
+【截图对应的屏幕信息】
+__SCREEN_INFO__
+
 必须只输出一个 JSON 对象（不要 Markdown 代码块、不要任何额外文字）：
 {"fulfilled": true, "reason": "简短理由"}
 
@@ -116,12 +141,22 @@ fulfilled 取值：
 只输出 JSON。"""
 
 
-def build_decision_prompt(task: str, round_no: int = 1, max_rounds: int = 5) -> str:
-    """构造单图决策 prompt（兼容旧接口）。"""
+def build_decision_prompt(
+    task: str,
+    round_no: int = 1,
+    max_rounds: int = 5,
+    screen_info: str = "",
+) -> str:
+    """构造单图决策 prompt（兼容旧接口）。
+
+    :param screen_info: 屏幕几何描述（core.screen.describe_screen 的输出）；
+                        空串时用兜底说明，保证旧调用方行为不变。
+    """
     return (
         _DECISION_PROMPT.replace("__TASK__", str(task))
         .replace("__ROUND__", str(int(round_no)))
         .replace("__MAX_ROUNDS__", str(int(max_rounds)))
+        .replace("__SCREEN_INFO__", _screen_info_text(screen_info))
     )
 
 
@@ -131,8 +166,13 @@ def build_agent_decision_prompt(
     max_rounds: int,
     recent_context: str = "",
     retrieved_history: str = "",
+    screen_info: str = "",
 ) -> str:
-    """构造有状态 agent loop 决策 prompt（含最近上下文 + BM25 检索历史）。"""
+    """构造有状态 agent loop 决策 prompt（含屏幕几何 + 最近上下文 + BM25 检索历史）。
+
+    :param screen_info: 屏幕几何描述（core.screen.describe_screen 的输出），
+                        让模型知道真实分辨率 / 缩放 / 显示器数 / 坐标参照系。
+    """
     recent = str(recent_context or "").strip() or "（暂无）"
     history = str(retrieved_history or "").strip() or "（暂无）"
     return (
@@ -141,12 +181,17 @@ def build_agent_decision_prompt(
         .replace("__MAX_ROUNDS__", str(int(max_rounds)))
         .replace("__RECENT_CONTEXT__", recent)
         .replace("__RETRIEVED_HISTORY__", history)
+        .replace("__SCREEN_INFO__", _screen_info_text(screen_info))
     )
 
 
-def build_verify_prompt(expectation: str) -> str:
-    """构造 verify prompt。"""
-    return _VERIFY_PROMPT.replace("__EXPECTATION__", str(expectation))
+def build_verify_prompt(expectation: str, screen_info: str = "") -> str:
+    """构造 verify prompt（可带屏幕几何描述）。"""
+    return (
+        _VERIFY_PROMPT.replace("__EXPECTATION__", str(expectation))
+        .replace("__SCREEN_INFO__", _screen_info_text(screen_info))
+    )
+
 
 
 # ---------------------------------------------------------------------------

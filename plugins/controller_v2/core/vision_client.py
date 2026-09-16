@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 
-from .config import load_config, resolve_vision_api_key
+from .config import load_config, resolve_image_sample, resolve_vision_api_key
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_CONNECT_TIMEOUT = 15
@@ -245,16 +245,10 @@ def _post_chat(
     base_url = str(vision.get("base_url") or DEFAULT_BASE_URL).rstrip("/")
     endpoint = f"{base_url}/chat/completions"
 
-    image_short_side = int(
-        (vision.get("image_sample") or {}).get("short_side", DEFAULT_IMAGE_SHORT_SIDE)
-        if isinstance(vision.get("image_sample"), dict)
-        else DEFAULT_IMAGE_SHORT_SIDE
-    )
-    jpeg_quality = int(
-        (vision.get("image_sample") or {}).get("jpeg_quality", DEFAULT_JPEG_QUALITY)
-        if isinstance(vision.get("image_sample"), dict)
-        else DEFAULT_JPEG_QUALITY
-    )
+    # 图片采样按屏幕分辨率 / 缩放自适应（见 core.config.resolve_image_sample）。
+    sample = resolve_image_sample(cfg)
+    image_short_side = int(sample["short_side"])
+    jpeg_quality = int(sample["jpeg_quality"])
 
     image_bytes = _sample_image_bytes(image_path, image_short_side, jpeg_quality)
     data_uri = _image_data_uri(image_bytes)
@@ -557,6 +551,7 @@ __all__ = [
 def _coerce_message_content(
     message: Dict[str, Any],
     vision: Dict[str, Any],
+    cfg: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """把 executor 传进来的宽松 message 规整为 OpenAI ChatCompletions 结构。
 
@@ -575,18 +570,10 @@ def _coerce_message_content(
     if not isinstance(content, list):
         return {"role": role, "content": str(content)}
 
-    image_short_side = DEFAULT_IMAGE_SHORT_SIDE
-    jpeg_quality = DEFAULT_JPEG_QUALITY
-    image_sample = vision.get("image_sample")
-    if isinstance(image_sample, dict):
-        try:
-            image_short_side = int(image_sample.get("short_side", DEFAULT_IMAGE_SHORT_SIDE))
-        except (TypeError, ValueError):
-            image_short_side = DEFAULT_IMAGE_SHORT_SIDE
-        try:
-            jpeg_quality = int(image_sample.get("jpeg_quality", DEFAULT_JPEG_QUALITY))
-        except (TypeError, ValueError):
-            jpeg_quality = DEFAULT_JPEG_QUALITY
+    # 图片采样按屏幕分辨率 / 缩放自适应（short_side 是上限，只会缩小不会放大）。
+    sample = resolve_image_sample(cfg)
+    image_short_side = int(sample["short_side"])
+    jpeg_quality = int(sample["jpeg_quality"])
 
     parts: List[Dict[str, Any]] = []
     for part in content:
@@ -658,7 +645,7 @@ def post_chat_messages(
     endpoint = f"{base_url}/chat/completions"
 
     payload = {
-        "messages": [_coerce_message_content(m, vision) for m in messages],
+        "messages": [_coerce_message_content(m, vision, cfg) for m in messages],
     }
     if not is_wildcard_model(model):     # 通配（* / 空）→ 不带 model，交给端点决定
         payload["model"] = model

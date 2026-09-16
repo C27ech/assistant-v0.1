@@ -1,11 +1,18 @@
 {
-  "_说明": "截图发 QQ 插件配置。user_id = 你自己的 QQ 号（必填，否则插件会直接报错退出）；ws_url = OneBot 反向 WebSocket 地址。",
+  "_说明": "user_id = 你自己的 QQ 号（要发图时必须填；为 0 时只会截图、不会发送）；ws_url = OneBot 反向 WebSocket 地址。",
+  "_说明_auto_fit": "图过大时自动等比缩小（只缩不放）：最长边超过 max_side 或总像素超过 max_pixels 就缩到限制内；命令行 --no-auto-fit 可临时关闭。",
   "ws_url": "ws://127.0.0.1:3001",
   "token": "",
   "user_id": 0,
   "delete_temp_files": true,
   "timeout": 10.0,
   "image_format": "PNG",
-  "temp_dir": null
+  "temp_dir": null,
+  "jpeg_quality": 85,
+  "auto_fit": {
+    "enabled": true,
+    "max_side": 2560,
+    "max_pixels": 8000000
+  }
 }
 

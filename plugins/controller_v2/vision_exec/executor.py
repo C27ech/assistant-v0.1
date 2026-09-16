@@ -19,16 +19,18 @@
 
 from __future__ import annotations
 
+import sys
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from action.action import execute as execute_action
+from core import coord
 from core import vision_client as vc
-from core.config import load_config, resolve_vision_api_key
+from core.config import load_config, resolve_image_sample, resolve_vision_api_key
 from core.guard import check_action
-from core.screen import capture_screenshot
+from core.screen import capture_frame, describe_screen, get_screen_profile
 
 from . import history as history_store
 from .prompt import (
@@ -46,11 +48,50 @@ DEFAULT_DIFF_THRESHOLD = 0.01
 # 有状态 loop 相关常量。
 MAX_HISTORY_ITEMS = 50          # BM25 检索 top50。
 MAX_RECENT_FRAMES = 3           # 注入 prompt 的最近关键帧数量（不含当前帧）。
-MAX_FRAME_SIDE = 1024           # 缩略图最长边。
+MAX_FRAME_SIDE = 1024           # 旧固定缩略图长边（已被 core.screen 的按分辨率自适应取代，仅保留常量）。
 MAX_RECENT_CONTEXT_MESSAGES = 8 # 从 messages 历史里取最近多少条组成 query。
 MAX_CONSECUTIVE_UNSURE = 3      # 连续不确定 -> 卡死。
 MAX_CONSECUTIVE_ERRORS = 3      # 连续决策失败 -> 卡死。
 MAX_NO_CHANGE_STREAK = 5        # 连续动作后画面无变化 -> 卡死。
+
+
+def _log(message: str) -> None:
+    """诊断日志统一写 stderr（stdout 只留给 CLI 契约 JSON）。"""
+    try:
+        print(message, file=sys.stderr, flush=True)
+    except Exception:  # noqa: BLE001 - 日志失败不影响主流程。
+        pass
+
+
+def _screen_summary(
+    profile: Optional[Dict[str, Any]] = None,
+    frame: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """屏幕画像 + 本轮帧几何的精简摘要（结果 JSON / 日志用）。"""
+    info = profile if isinstance(profile, dict) else get_screen_profile()
+    scale = float(info.get("scale") or 1.0)
+
+    summary: Dict[str, Any] = {
+        "physical_size": list(info.get("physical_size") or ()),
+        "logical_size": list(info.get("logical_size") or ()),
+        "scale": scale,
+        "scale_percent": round(scale * 100),
+        "dpi": info.get("dpi"),
+        "dpi_awareness": info.get("dpi_awareness"),
+        "monitor_count": info.get("monitor_count"),
+        "multi_monitor": bool(info.get("multi_monitor")),
+        "virtual_rect": list(info.get("virtual_rect") or ()),
+    }
+
+    if isinstance(frame, dict):
+        summary["frame"] = {
+            "rect": list(frame.get("rect") or ()),
+            "size": list(frame.get("size") or ()),
+            "source_size": list(frame.get("source_size") or ()),
+            "capture_scale": frame.get("capture_scale"),
+            "all_screens": frame.get("all_screens"),
+        }
+    return summary
 
 _SYSTEM_PROMPT = (
     "你是 Windows 桌面自动化控制器。你通过多轮截图、执行键鼠动作、验证结果来完成"
@@ -125,42 +166,29 @@ def _capture_thumbnail(
     session_id: str,
     round_no: int,
     kind: str = "screenshot",
-) -> str:
-    """截图并保存为 JPEG 缩略图，返回相对项目根目录的路径字符串。
+    cfg: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """截图并保存为「按屏幕自适应尺寸」的 JPEG 帧，返回帧信息 dict。
 
-    原图只作为临时 PNG，压缩成缩略图后立即删除；历史只存缩略图路径。
+    分辨率 / 缩放 / 多显示器自适应全部在 ``core.screen.capture_frame`` 里完成：
+    帧长边按逻辑分辨率等比采样（本机 1920x1200@125% -> 1024x640），
+    多显示器时抓整块虚拟桌面；改分辨率 / 改缩放后下一轮自动换新几何。
+
+    ``frame["rect"]`` 是本轮归一化坐标的参照系（物理像素，原点可为负），
+    必须交给 ``core.coord.set_active_frame()``，否则多屏 / 非主屏原点会点错位置。
+
+    :returns: ``core.screen.capture_frame`` 的返回，外加 ``rel_path``（相对项目根的路径）。
     """
     frames = history_store.frames_dir()
-    raw = frames / f"raw_{uuid.uuid4().hex}.png"
-    capture_screenshot(str(raw))
-
     thumb = frames / f"{session_id}_{round_no}_{kind}_{uuid.uuid4().hex[:8]}.jpg"
-    try:
-        from PIL import Image
 
-        with Image.open(raw) as im:
-            image = im.convert("RGB")
-            width, height = image.size
-            max_side = max(width, height)
-            if max_side > MAX_FRAME_SIDE:
-                scale = MAX_FRAME_SIDE / float(max_side)
-                new_size = (
-                    max(1, int(round(width * scale))),
-                    max(1, int(round(height * scale))),
-                )
-                image = image.resize(new_size, Image.LANCZOS)
-            image.save(thumb, format="JPEG", quality=80)
-    finally:
-        try:
-            raw.unlink(missing_ok=True)
-        except Exception:  # noqa: BLE001
-            pass
-
+    frame = capture_frame(str(thumb), cfg=cfg)
     try:
         project_root = Path(__file__).resolve().parent.parent
-        return str(thumb.resolve().relative_to(project_root))
+        frame["rel_path"] = str(Path(frame["path"]).resolve().relative_to(project_root))
     except ValueError:
-        return str(thumb.resolve())
+        frame["rel_path"] = str(frame["path"])
+    return frame
 
 
 def _image_diff_score(before: str, after: str) -> float:
@@ -264,6 +292,43 @@ class AgentLoop:
         self.consecutive_errors = 0
         self.no_change_streak = 0
 
+        # 屏幕几何（分辨率 / 缩放 / 多显示器）：每轮截图后重新绑定，变化会自动跟随。
+        self.screen_profile: Dict[str, Any] = get_screen_profile()
+        self.frame_geometry: Optional[Dict[str, Any]] = None
+        self.screen_info: str = describe_screen(self.screen_profile)
+
+    # ------------------------------------------------------------------
+    # 屏幕几何绑定（分辨率 / 缩放 / 多显示器自适应）
+    # ------------------------------------------------------------------
+    def _bind_frame(
+        self,
+        frame: Dict[str, Any],
+        detail: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """绑定本轮截图的几何：坐标帧（决定点击落在哪台显示器）+ 屏幕几何描述。
+
+        分辨率、Windows 缩放、显示器数量/布局变化时，``capture_frame`` 会拿到新画像，
+        这里检测到指纹变化就打日志并重新绑定，不需要重启进程。
+        """
+        rect = tuple(int(v) for v in (frame.get("rect") or ()))
+        coord.set_active_frame(rect if len(rect) == 4 else None)
+
+        profile = frame.get("profile") if isinstance(frame.get("profile"), dict) else None
+        if profile is None:
+            profile = get_screen_profile()
+
+        if profile.get("fingerprint") != self.screen_profile.get("fingerprint"):
+            _log(
+                "[executor] 屏幕几何变化，已自动重新绑定："
+                + describe_screen(profile, rect or None, frame.get("size"))
+            )
+        self.screen_profile = profile
+        self.frame_geometry = frame
+        self.screen_info = describe_screen(profile, rect or None, frame.get("size"))
+
+        if detail is not None:
+            detail["screen"] = _screen_summary(profile, frame)
+
     # ------------------------------------------------------------------
     # 决策
     # ------------------------------------------------------------------
@@ -274,8 +339,9 @@ class AgentLoop:
         round_no: int,
         recent_frames: List[str],
         retrieved_entries: List[Tuple[Dict[str, Any], float]],
+        screen_info: str = "",
     ) -> Dict[str, Any]:
-        """构造 prompt 并调用模型，返回结构化决策。"""
+        """构造 prompt 并调用模型，返回结构化决策（含屏幕几何信息）。"""
         recent_context = _recent_context(self.messages)
         retrieved_text = "\n".join(
             _history_text(entry) + f"  [score={score:.4f}]"
@@ -288,6 +354,7 @@ class AgentLoop:
             max_rounds=self.max_rounds,
             recent_context=recent_context,
             retrieved_history=retrieved_text,
+            screen_info=screen_info or self.screen_info,
         )
 
         messages = _build_decision_messages(prompt, recent_frames, current_frame)
@@ -324,12 +391,12 @@ class AgentLoop:
         after_frame: str,
         expectation: Optional[str],
     ) -> Dict[str, Any]:
-        """单图 verify，返回三态 + 原因。"""
+        """单图 verify，返回三态 + 原因（带屏幕几何信息，便于判断分辨率相关的证据）。"""
         if not expectation or not str(expectation).strip():
             return {"result": None, "reason": "决策未提供可验证预期"}
 
         try:
-            prompt = build_verify_prompt(str(expectation).strip())
+            prompt = build_verify_prompt(str(expectation).strip(), screen_info=self.screen_info)
             text = _chat_single(after_frame, prompt, cfg=self.cfg, tier=self.tier)
         except Exception as exc:  # noqa: BLE001
             return {"result": None, "reason": f"视觉验证失败: {exc}"}
@@ -357,6 +424,7 @@ class AgentLoop:
             "round_details": self.round_details,
             "session_id": self.session_id,
             "history_count": history_store.count_history(session_id=self.session_id),
+            "screen": _screen_summary(self.screen_profile, self.frame_geometry),
         }
 
     # ------------------------------------------------------------------
@@ -377,19 +445,30 @@ class AgentLoop:
                 "reason": None,
             }
 
-            # 1) 截图 -> 缩略图落盘 -> 追加历史（只存路径 + 描述）。
+            # 1) 截图 -> 按分辨率/缩放自适应的帧 -> 绑定坐标帧 -> 追加历史。
             try:
-                current_frame_rel = _capture_thumbnail(self.session_id, round_no, "screen")
-                current_frame_abs = _resolve_frame_abs(current_frame_rel)
-                if not current_frame_abs:
-                    raise RuntimeError("截图缩略图未生成")
+                frame = _capture_thumbnail(self.session_id, round_no, "screen", cfg=self.cfg)
+                current_frame_rel = frame["rel_path"]
+                current_frame_abs = frame["path"]
+                self._bind_frame(frame, detail)
+                _log(
+                    f"[executor] 第{round_no}轮帧 {frame['size'][0]}x{frame['size'][1]}"
+                    f"（源 {frame['source_size'][0]}x{frame['source_size'][1]}，"
+                    f"缩放 {round(float(frame['capture_scale']) * 100)}%）"
+                    f" 坐标帧={frame['rect']}"
+                )
                 screenshot_entry_id = history_store.add_history(
                     self.session_id,
                     kind="screenshot",
                     text=f"第{round_no}轮当前屏幕截图",
                     round_no=round_no,
                     frame_path=current_frame_rel,
-                    meta={"round": round_no, "role": "current"},
+                    meta={
+                        "round": round_no,
+                        "role": "current",
+                        "frame_rect": list(frame["rect"]),
+                        "frame_size": list(frame["size"]),
+                    },
                 )
             except Exception as exc:  # noqa: BLE001
                 self.last_error = f"截图失败: {exc}"
@@ -411,13 +490,14 @@ class AgentLoop:
             # 3) 最近关键帧（排除当前帧）。
             recent_frames = self._recent_keyframes(exclude=current_frame_rel)
 
-            # 4) 模型决策。
+            # 4) 模型决策（prompt 里带本轮屏幕几何：分辨率 / 缩放 / 显示器 / 坐标参照系）。
             decision = self._decide(
                 current_frame_abs,
                 current_frame_rel,
                 round_no,
                 recent_frames,
                 retrieved,
+                screen_info=self.screen_info,
             )
             detail["decision"] = {
                 "status": decision.get("status"),
@@ -588,13 +668,13 @@ class AgentLoop:
                 meta={"action": action, "result": exec_result},
             )
 
-            # 8) 等待 UI 稳定后再次截图 verify。
+            # 8) 等待 UI 稳定后再次截图 verify（同样按屏幕几何自适应并重新绑定坐标帧）。
             time.sleep(DEFAULT_SETTLE_DELAY)
             try:
-                after_rel = _capture_thumbnail(self.session_id, round_no, "verify")
-                after_abs = _resolve_frame_abs(after_rel)
-                if not after_abs:
-                    raise RuntimeError("验证截图缩略图未生成")
+                after = _capture_thumbnail(self.session_id, round_no, "verify", cfg=self.cfg)
+                after_rel = after["rel_path"]
+                after_abs = after["path"]
+                self._bind_frame(after)
             except Exception as exc:  # noqa: BLE001
                 self.last_error = f"验证截图失败: {exc}"
                 detail["reason"] = self.last_error
@@ -750,6 +830,7 @@ def run_vision_task(
             "round_details": [],
             "session_id": None,
             "history_count": history_store.count_history(),
+            "screen": _screen_summary(),
         }
 
     try:
@@ -772,7 +853,14 @@ def run_vision_task(
             "round_details": [],
             "session_id": session_id,
             "history_count": history_store.count_history(),
+            "screen": _screen_summary(),
         }
+
+    # 屏幕几何自适应：每次任务开始时打一份画像 + 模型图片采样参数（分辨率/缩放变了会显示新值）。
+    coord.set_active_frame(None)  # 每轮截图后会重新绑定，这里先清掉上一轮的残留
+    profile = get_screen_profile(force=True)
+    _log("[executor] 屏幕画像: " + describe_screen(profile).replace("\n", " | "))
+    _log(f"[executor] 模型图片采样: {resolve_image_sample(cfg)}")
 
     loop = AgentLoop(
         task=task,

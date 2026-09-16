@@ -8,13 +8,25 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from core.screen import capture_screenshot  # noqa: E402
-from core.config import load_config, resolve_ark_api_key  # noqa: E402
+from core.screen import capture_screenshot, get_screen_profile  # noqa: E402
+from core.config import load_config, resolve_ark_api_key, resolve_image_sample  # noqa: E402
 from core import vision_client as vc  # noqa: E402
 
 cfg = load_config()
 p = capture_screenshot()
 print("SHOT", p, flush=True)
+
+profile = get_screen_profile()
+print(
+    "SCREEN 物理 {}x{} 缩放 {}%（dpi {}）逻辑 {}x{} 显示器 {} 台 DPI感知 {}".format(
+        profile["physical_size"][0], profile["physical_size"][1],
+        round(float(profile["scale"]) * 100), profile["dpi"],
+        profile["logical_size"][0], profile["logical_size"][1],
+        profile["monitor_count"], profile["dpi_awareness"],
+    ),
+    flush=True,
+)
+print("IMAGE_SAMPLE", resolve_image_sample(cfg), flush=True)
 
 _, vision = vc._read_vision_config(cfg)
 key = resolve_ark_api_key(cfg)

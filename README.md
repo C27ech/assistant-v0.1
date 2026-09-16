@@ -109,14 +109,14 @@
 | 单实例闸门 | 全局 Mutex，防止多实例抢消息 |
 | 可观测 | 消息/任务/事件全落 SQLite；插件子进程 stdout/stderr 逐个落盘 |
 
-### 随仓库附带的 4 个插件（合计 8 个工具）
+### 随仓库附带的 4 个插件（合计 10 个工具）
 
 | 插件 | 工具 | 干什么 |
 |------|------|--------|
 | **file_tools** | `read_file` `list_dir` `find_files` `grep_files` | 读本机文本文件 / 列目录 / 按名找 / 搜内容（**敏感文件硬拦截**） |
 | **web_tools** | `web_search` `fetch_page` | 联网搜索（学术自动改道 arXiv/OpenAlex/Crossref + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | `desktop_task_v2` | 用自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
-| **screenshot2qq** | `send_screenshot` | 截全屏并直接发到指定 QQ 私聊 |
+| **screenshot2qq** | `send_screenshot` `list_windows` `list_monitors` | 截全屏 / 指定窗口 / 某台显示器 / 一块区域并直接发到指定 QQ 私聊（图过大自动缩小；含分辨率/缩放自适应） |
 
 ---
 

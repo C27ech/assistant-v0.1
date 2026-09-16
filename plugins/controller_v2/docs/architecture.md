@@ -44,10 +44,10 @@
   3. `config.json` 的 `vision.vision_api_key`（兜底）。
 - endpoint：`{base_url}/chat/completions`，默认
   `https://ark.cn-beijing.volces.com/api/v3`。
-- 模型档位（`vision.model_tiers`）：型号随便填，代码不校验、不列举 ——
-  - 填 `*`（或留空）= 通配：请求体里干脆不带 `model` 字段，由端点用它自己的默认模型；
-  - 填具体型号则原样透传（如 `deepseek-v4.1-flash…`、`doubao-seed-2-1-pro…`）；
-  - `mini` / `turbo` / `pro` 只是三个可分别配置的档位键名，具体用什么型号由 `config.json` 决定。
+- 模型档位（`vision.model_tiers`）：
+  - `mini`  = `doubao-seed-2-0-mini-260428`
+  - `turbo` = `doubao-seed-2-1-turbo-260628`
+  - `pro`   = `doubao-seed-2-1-pro-260628`
 - 请求体：OpenAI ChatCompletions 兼容、非流式；
   `content` 为 `[image_url, text]`，图片为 `data:image/jpeg;base64,...`。
 - 图片采样：短边 640、JPEG 质量 80。
@@ -101,7 +101,7 @@ norm_y = round(py / physical_height * 1000)
 3. 回退 `GetSystemMetrics(SM_CXSCREEN / SM_CYSCREEN)`；
 4. 非 Windows / 全部失败：`pyautogui.size()`。
 
-> 本机实测物理分辨率 `1920x1080`（125% DPI，逻辑 `1536x864`）。
+> 本机实测物理分辨率 `1920x1200`（125% DPI，逻辑 `1536x960`）。
 > 必须明确区分「归一化坐标」与「物理像素」两套语义，禁止混用。
 
 ## 4. 安全护栏
@@ -130,3 +130,31 @@ norm_y = round(py / physical_height * 1000)
 - 新代码只使用标准库 + `requests / pillow / pyautogui / pynput`。
 - 禁止 import 老 `controller` 任何模块。
 - 不依赖 `memory.json` / `experience.json` / 经验规则引擎。
+
+## 7. 屏幕几何自适应（分辨率 / 缩放 / 多显示器）
+
+- **统一来源**：`core.screen`。`ensure_dpi_awareness()` 置 Per-Monitor-V2 之后，
+  物理分辨率、每屏 dpi、虚拟桌面 rect、窗口 rect、截图尺寸都按物理像素处理。
+- **屏幕画像**：`get_screen_profile()` 返回
+  `physical_size / logical_size / dpi / scale / max_scale / monitors[] / virtual_rect /
+  monitor_count / multi_monitor / dpi_awareness / fingerprint`；
+  每次读取用一次廉价指纹（虚拟桌面 rect + 显示器数 + 系统 DPI）判断是否需要重新采样，
+  改分辨率 / 改缩放 / 插拔显示器后在下次调用生效。
+  （指纹要在 DPI 感知之后采样，否则未感知的进程读到的是逻辑尺寸，缓存会一直失效。）
+- **截图覆盖范围**：`screen.all_screens = auto` → 多显示器时抓整块虚拟桌面（否则其它显示器上的
+  窗口不在模型看到的画面里），单屏时与旧行为相同。
+- **送入模型的帧**：`capture_frame()` 按 `target = clamp(0.6667 * 逻辑长边, 768, 2048)`
+  等比采样后落 JPEG（本机 1920x1200@125% → 1024x640）。
+- **模型图片采样**：`core.config.resolve_image_sample()` 把短边按
+  `clamp(0.6667 * 物理短边 / 缩放, 384, 1080)` 计算（本机 640，4K@150% 为 960，小屏为 512）。
+- **坐标帧（frame）**：`core.coord.set_active_frame(rect)` 由执行器每轮截图后绑定，
+  `norm_to_physical` 以该 rect 为参照系换算（原点可为负），
+  因此副屏在左 / 上方的布局也能点到对应显示器；未设置时退回主屏 `(0, 0, w, h)`。
+- **prompt 注入**：决策 / verify prompt 里带一段 `【屏幕几何信息】`（`describe_screen()`），
+  内容是物理分辨率、Windows 缩放、显示器数量、本轮截图覆盖的矩形，
+  以及 0~1000 对应的物理矩形和右上角像素。
+- **结果可观测**：`run_vision_task()` 返回值里有 `screen` 段
+  （`physical_size / logical_size / scale / scale_percent / dpi / dpi_awareness /
+  monitor_count / multi_monitor / virtual_rect / frame{rect,size,source_size,capture_scale,all_screens}`），
+  每轮的 `round_details[i]["screen"]` 同样记录；启动时 stderr 打印一行屏幕画像。
+- **自检**：`python -m core.screen` 打印画像、各分辨率下的帧尺寸，并实拍一帧。
