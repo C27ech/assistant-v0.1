@@ -23,7 +23,7 @@ def test_roundtrip() -> None:
         # task / subtask / agent / event
         tid = repo.create_task("u1", "做一个计算器", "带 GUI")
         sid = repo.create_subtask(tid, 0, "写 UI", "用 tkinter", approval_list=["ui.py"])
-        aid = repo.create_agent(tid, subtask_id=sid, model="deepseek-v4-pro", pid=123)
+        aid = repo.create_agent(tid, subtask_id=sid, model="*", pid=123)
         repo.add_event(aid, "step_start", {"step": 1})
         repo.update_agent(aid, status="done")
         repo.update_subtask(sid, status="done", agent_id=aid)
@@ -39,7 +39,7 @@ def test_roundtrip() -> None:
         assert len(repo.get_history("u1")) == 2
 
         # decision
-        repo.add_decision("u1", "你好", "你好，我是监工", "deepseek-v4-pro", task_id=tid)
+        repo.add_decision("u1", "你好", "你好，我是监工", "*", task_id=tid)
 
         db.close()
         print("storage 冒烟测试通过")

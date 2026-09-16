@@ -44,10 +44,10 @@
   3. `config.json` 的 `vision.vision_api_key`（兜底）。
 - endpoint：`{base_url}/chat/completions`，默认
   `https://ark.cn-beijing.volces.com/api/v3`。
-- 模型档位（`vision.model_tiers`）：
-  - `mini`  = `doubao-seed-2-0-mini-260428`
-  - `turbo` = `doubao-seed-2-1-turbo-260628`
-  - `pro`   = `doubao-seed-2-1-pro-260628`
+- 模型档位（`vision.model_tiers`）：型号随便填，代码不校验、不列举 ——
+  - 填 `*`（或留空）= 通配：请求体里干脆不带 `model` 字段，由端点用它自己的默认模型；
+  - 填具体型号则原样透传（如 `deepseek-v4.1-flash…`、`doubao-seed-2-1-pro…`）；
+  - `mini` / `turbo` / `pro` 只是三个可分别配置的档位键名，具体用什么型号由 `config.json` 决定。
 - 请求体：OpenAI ChatCompletions 兼容、非流式；
   `content` 为 `[image_url, text]`，图片为 `data:image/jpeg;base64,...`。
 - 图片采样：短边 640、JPEG 质量 80。

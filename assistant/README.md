@@ -21,7 +21,7 @@
 | `agents/` | 代码 AI | `coding_agent.py` 单轮循环，`worker.py` 子进程入口 |
 | `tools/` | 代码 AI 的工具箱 | 读写文件（限工作目录）/ 跑命令（统一 UTF-8）/ 审批闸门 |
 | `storage/` | 存储 | SQLite + `memory.py` 的 TF-IDF 检索（零依赖） |
-| `llm/deepseek.py` | 模型客户端 | OpenAI 兼容；带超时与重试 |
+| `llm/deepseek.py` | 模型客户端 | OpenAI 兼容；模型名通配（`*` = 不指定型号）；带超时与重试 |
 | `scripts/` | 语料处理脚本 | 风格功能用，见 [`scripts/README.md`](scripts/README.md) |
 | `style/` | 风格数据 | 见 [`style/README.md`](style/README.md) |
 | `tests/` | 测试 | `python -m pytest tests -q` |

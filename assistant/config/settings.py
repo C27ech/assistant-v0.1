@@ -49,21 +49,42 @@ def _parse_list(raw: str) -> list:
     return [p.strip() for p in parts if p.strip()]
 
 
-# 火山方舟（豆包）可选的模型清单，供助手AI 派活时选用
-DOUBAO_MODELS = [
-    "doubao-seed-2-1-turbo-260628",
-    "doubao-seed-2-0-mini-260428",
-    "doubao-seed-2-1-pro-260628",
-]
+# 模型名一律「通配」：代码不校验、不列举、不做前缀判断，你填什么就用什么。
+#   "*"（或留空）= 通配：不指定具体型号 —— 请求里干脆不带 model 字段，
+#                        由你的端点/网关用自己的默认模型；
+#   其他任意字符串   = 具体型号，原样透传给端点。
+ANY_MODEL = "*"
+
+# 供应商路由（通配模式，逗号分隔）：模型名命中这些模式的走豆包（火山方舟 Ark），
+# 其余（含通配）走 DEEPSEEK_*。想全走 DeepSeek 就把它留空。
+DOUBAO_MODEL_PATTERNS = ["doubao-*"]
+
+
+def is_wildcard(model: str) -> bool:
+    """模型名是否通配（留空、或含 `*`）→ 表示不指定具体型号。"""
+    return not model or "*" in model
+
+
+def model_matches(pattern: str, model: str) -> bool:
+    """把 pattern 当通配符（`*` 匹配任意串）跟模型名比对，忽略大小写。
+
+    例：model_matches("doubao-*", "doubao-seed-2-1-pro") → True
+    """
+    if not pattern or not model:
+        return False
+    if pattern == "*":
+        return True
+    regex = re.escape(pattern).replace(r"\*", ".*")
+    return re.fullmatch(regex, model, flags=re.IGNORECASE) is not None
 
 
 @dataclass
 class Settings:
-    # --- DeepSeek ---
+    # --- DeepSeek（OpenAI 兼容端点，可换成任何兼容服务）---
     deepseek_base_url: str = "https://api.deepseek.com"
-    decision_model: str = "deepseek-v4-flash"
-    monitor_model: str = "deepseek-v4-flash"
-    coder_model: str = "deepseek-v4-flash"
+    decision_model: str = ANY_MODEL   # 通配：不指定型号，由端点决定
+    monitor_model: str = ANY_MODEL
+    coder_model: str = ANY_MODEL
     api_key_decision: Optional[str] = None
     api_key_monitor: Optional[str] = None
     api_key_coder: Optional[str] = None
@@ -71,6 +92,8 @@ class Settings:
     # --- 豆包（火山方舟 Ark）---
     doubao_api_key: str = ""
     doubao_base_url: str = "https://ark.cn-beijing.volces.com/api/v3"
+    # 哪些模型名算「豆包」（通配模式）；空 = 不启用豆包路由
+    doubao_model_patterns: list = field(default_factory=lambda: list(DOUBAO_MODEL_PATTERNS))
 
     # --- 渠道选择：只保留 QQ（OneBot / NapCat）---
     channel: str = "qq"
@@ -110,14 +133,15 @@ class Settings:
         load_dotenv(BASE_DIR / ".env")
         return cls(
             deepseek_base_url=_env("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            decision_model=_env("DECISION_MODEL", "deepseek-v4-flash"),
-            monitor_model=_env("MONITOR_MODEL", "deepseek-v4-flash"),
-            coder_model=_env("CODER_MODEL", "deepseek-v4-flash"),
+            decision_model=_env("DECISION_MODEL", ANY_MODEL),
+            monitor_model=_env("MONITOR_MODEL", ANY_MODEL),
+            coder_model=_env("CODER_MODEL", ANY_MODEL),
             api_key_decision=_env("DEEPSEEK_API_KEY_DECISION") or None,
             api_key_monitor=_env("DEEPSEEK_API_KEY_MONITOR") or None,
             api_key_coder=_env("DEEPSEEK_API_KEY_CODER") or None,
             doubao_api_key=_env("DOUBAO_API_KEY", ""),
             doubao_base_url=_env("DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"),
+            doubao_model_patterns=_parse_list(_env("DOUBAO_MODEL_PATTERNS")) or list(DOUBAO_MODEL_PATTERNS),
             channel=_env("CHANNEL", "qq"),
             qq_onebot_url=_env("QQ_ONEBOT_URL", "ws://127.0.0.1:3001"),
             desktop_controller_dir=_env("DESKTOP_CONTROLLER_DIR", "") or str(Path.home() / "Desktop" / "controller"),
@@ -149,10 +173,13 @@ class Settings:
     def llm_credentials(self, model: str, role: str = "coder") -> tuple:
         """根据模型名返回 (api_key, base_url)。
 
-        豆包模型（doubao-*）走火山方舟 Ark；其余走 DeepSeek，并按角色选 key。
+        模型名只用来「选端点」：命中 doubao_model_patterns（默认 `doubao-*`）走火山方舟 Ark，
+        其余（含通配 `*` / 留空）走 DeepSeek，并按角色选 key。
+        型号本身不做任何校验 —— 你填什么就透传什么，代码不限定具体模型。
         """
-        if model.startswith("doubao"):
-            return self.doubao_api_key, self.doubao_base_url
+        for pattern in self.doubao_model_patterns or []:
+            if model_matches(pattern, model):
+                return self.doubao_api_key, self.doubao_base_url
         if role == "decision":
             return self.api_key_decision or "", self.deepseek_base_url
         if role == "monitor":

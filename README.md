@@ -46,7 +46,7 @@
                                    ▼
                     ┌──────────────────────────────┐
                     │  决策 AI（助手本体）          │  supervisor/decision.py
-                    │  · 听懂需求 · 判断要不要插件  │  模型可配（默认 deepseek-v4-flash）
+                    │  · 听懂需求 · 判断要不要插件  │  模型可配（默认通配 *）
                     │  · 调度代码 AI · 汇报         │
                     └───────┬──────────────┬───────┘
                             │              │
@@ -271,9 +271,10 @@ powershell -ExecutionPolicy Bypass -File assistant\assistant_watchdog.ps1
 | `DEEPSEEK_API_KEY_MONITOR` | — | 监控 AI 用的 key（可留空，留空则监控只走规则） |
 | `DEEPSEEK_API_KEY_CODER` | — | 代码 AI 用的 key（留空则由决策 key 兜底） |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | OpenAI 兼容端点，可换成任何兼容服务 |
-| `DECISION_MODEL` | `deepseek-v4-flash` | 助手本体模型 |
-| `MONITOR_MODEL` | `deepseek-v4-flash` | 监控模型 |
-| `CODER_MODEL` | `deepseek-v4-flash` | 代码 AI 默认模型 |
+| `DECISION_MODEL` | `*` | 助手本体模型。`*`（或留空）= 通配：不指定型号，由端点决定；也可填任意具体型号 |
+| `MONITOR_MODEL` | `*` | 监控模型（同上，一样支持通配） |
+| `CODER_MODEL` | `*` | 代码 AI 默认模型（同上，一样支持通配） |
+| `DOUBAO_MODEL_PATTERNS` | `doubao-*` | 供应商路由通配模式：命中这些模式的模型名走火山方舟（豆包），其余走 `DEEPSEEK_*` |
 | `DOUBAO_API_KEY` / `DOUBAO_BASE_URL` | — | 火山方舟（豆包）key；配了之后派活可选豆包模型 |
 | `CHANNEL` | `qq` | 渠道类型（只剩 `qq`） |
 | `QQ_ONEBOT_URL` | `ws://127.0.0.1:3001` | QQ 渠道的 OneBot WebSocket 地址 |
@@ -283,6 +284,11 @@ powershell -ExecutionPolicy Bypass -File assistant\assistant_watchdog.ps1
 | `DECISION_MAX_ITER` | `200` | 每轮最多工具调用轮数（工具多/任务复杂就调大） |
 | `DB_PATH` | `assistant.db` | SQLite 文件名（相对项目根目录） |
 | `NOTIFY_ON_START` / `NOTIFY_ON_STUCK` / `NOTIFY_ON_DONE` | `true` | 主动汇报：上线 / 卡住 / 完成 |
+
+> **模型名怎么填？** 一律从 `.env` 透传，代码不校验、不列举、不做前缀判断：
+> `*`（或留空）= **通配** —— 请求里干脆不带 `model` 字段，由你的端点用自己的默认模型；
+> 填具体型号（如 `deepseek-chat`、`doubao-seed-…`）则原样透传。
+> 走哪个供应商、用哪把 key，只看 `DOUBAO_MODEL_PATTERNS` 通配模式是否命中该模型名。
 
 ---
 

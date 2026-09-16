@@ -1,6 +1,6 @@
 """监控AI：消费代码AI 的事件流，判断进度/卡住/完成/需用户同意。
 
-规则优先（超时、错误、事件类型）；超时判卡时用 deepseek-v4-flash 二次确认，避免误判慢任务。
+规则优先（超时、错误、事件类型）；超时判卡时用 LLM 二次确认（模型走 .env，可通配），避免误判慢任务。
 监控AI 还会按任务复杂度自行决定「多久无进展判卡住（stuck_timeout）」与
 「代码AI 每隔多久输出一次进展（heartbeat_interval）」，两者都由监控AI 控制。
 """
@@ -37,7 +37,7 @@ class Monitor:
     def __init__(self, repo, stuck_timeout: int = 60, llm_client=None, startup_grace: int = 30):
         self.repo = repo
         self.stuck_timeout = stuck_timeout  # 兜底默认超时（秒），实际以监控AI 定的为准
-        self.llm_client = llm_client  # 可选：deepseek-v4-flash 客户端，用于判断卡住与规划监控参数
+        self.llm_client = llm_client  # 可选：LLM 客户端（模型由 .env 配，可通配），用于判断卡住与规划监控参数
         self.startup_grace = startup_grace  # 新 agent 启动宽限期（秒），期间无事件不判"无事件"
 
     def plan_monitoring(self, task: str, model: str = "") -> dict:

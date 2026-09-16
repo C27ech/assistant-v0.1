@@ -1,5 +1,5 @@
 {
-  "_comment": "controller_v2 运行时配置。以 _ 开头的键为注释键，加载时会被 core.config 自动跳过。vision_api_key 留空，真实 key 走环境变量 DEEPSEEK_API_KEY_DECISION / DEEPSEEK_API_KEY（或 secrets.json）。",
+  "_comment": "controller_v2 运行时配置。以 _ 开头的键为注释键，加载时会被 core.config 自动跳过。vision_api_key 留空，真实 key 走环境变量 DEEPSEEK_API_KEY_DECISION / DEEPSEEK_API_KEY（或 secrets.json）。model_tiers 里的型号随便填：填 * 或留空 = 通配（请求不带 model 字段，由端点决定用哪个模型）；填具体型号则原样透传。",
   "multimodal_model_tier": "pro",
   "vision": {
     "base_url": "https://api.deepseek.com",

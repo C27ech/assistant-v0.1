@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from config.plugins import build_tools, load_plugins, run_plugin
-from config.settings import Settings
+from config.settings import ANY_MODEL, Settings
 from llm.deepseek import DeepSeekClient
 from storage.db import Database
 from storage.repo import Repo
@@ -27,7 +27,7 @@ class Runtime:
         self.channel = channel
         self.orchestrator = Orchestrator(settings, self.repo)
 
-        # 监控AI：规则 + 可选 flash 模型判断卡住
+        # 监控AI：规则 + 可选 LLM 判断卡住（模型走 .env，可通配）
         flash_client = None
         if settings.api_key_monitor:
             flash_client = DeepSeekClient(
@@ -50,6 +50,20 @@ class Runtime:
         else:
             print("[白名单] 未配置 ALLOWED_USERS：任何人都能私聊指挥助手（建议尽快设置）",
                   file=sys.stderr, flush=True)
+
+        # 把当前用的模型打出来：模型名支持通配，出问题时一眼能看出到底带了什么型号
+        print(
+            "[模型] decision=%s monitor=%s coder=%s | 通配=%s（不指定型号，请求不带 model，由端点决定）"
+            " | 豆包路由通配=%s"
+            % (
+                settings.decision_model or ANY_MODEL,
+                settings.monitor_model or ANY_MODEL,
+                settings.coder_model or ANY_MODEL,
+                ANY_MODEL,
+                ",".join(settings.doubao_model_patterns) or "未启用",
+            ),
+            file=sys.stderr, flush=True,
+        )
 
         if settings.api_key_decision:
             self.decision = DecisionAgent(

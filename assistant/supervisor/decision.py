@@ -62,7 +62,7 @@ SYSTEM_PROMPT = """你是「助手」—— 一个 AI 项目的统筹者，在�
 
 规则：
 - 需要多个代码 AI 时可以并行；每个代码 AI 只负责一个清晰、独立的子任务，并分配不同的 workdir（子目录），避免它们互相覆盖文件。
-- 统一使用 deepseek-v4-flash；复杂/大任务把 max_steps、max_tokens 调大（写大文件/整个游戏就加大输出上限）。
+- 模型不用挑：留空就用 .env 里配的模型（`*` = 通配，由端点决定），复杂/大任务把 max_steps、max_tokens 调大（写大文件/整个游戏就加大输出上限）。
 - 启动代码 AI 后，简短说明这一步做了什么、下一步计划即可（后台监控会自动汇报进度，不要反复调用 list_agents 轮询）。
 - 代码 AI 完成后，系统会自动把结果反馈给你并让你继续：此时要么继续 spawn_agent 派下一个子任务，要么在整体任务都完成时给出最终总结；务必持续推进，不要停下来等用户。
 - 派发任务时，在任务描述（spawn_agent 的 task 参数）里明确要求代码 AI 完成后列出它改动/创建的所有文件与文件夹路径。
@@ -85,7 +85,7 @@ DECISION_TOOLS = [
                     "task": {"type": "string", "description": "给代码AI 的任务描述"},
                     "workdir": {"type": "string", "description": "工作目录（绝对路径）"},
                     "approval_list": {"type": "array", "items": {"type": "string"}, "description": "需用户同意的文件/路径列表"},
-                    "model": {"type": "string", "description": "模型：deepseek-v4-flash（默认）、doubao-seed-2-1-pro-260628、doubao-seed-2-1-turbo-260628、doubao-seed-2-0-mini-260428"},
+                    "model": {"type": "string", "description": "模型名：可留空（默认用 .env 配的 CODER_MODEL）；也可填任意具体型号或通配（* 、doubao-*），代码不限定型号"},
                     "max_steps": {"type": "integer", "description": "该代码AI 最多执行步数（默认 30，大任务可加大）"},
                     "max_tokens": {"type": "integer", "description": "单次最大输出 token 数（默认 131072，写大文件可加大）"},
                 },

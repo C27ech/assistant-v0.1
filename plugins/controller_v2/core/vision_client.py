@@ -43,6 +43,17 @@ DEFAULT_MODEL_TIER = "pro"
 DEFAULT_IMAGE_SHORT_SIDE = 640
 DEFAULT_JPEG_QUALITY = 80
 
+# 模型名通配：`*`（或留空）= 不指定具体型号 —— 请求体里干脆不带 model 字段，
+# 由端点用它自己的默认模型；其他任意字符串 = 具体型号，原样透传。
+# 代码不校验、不列举型号（config.json 里填什么都行）。
+WILDCARD_MODEL = "*"
+
+
+def is_wildcard_model(model) -> bool:
+    """模型名是否通配（留空或含 `*`）→ 表示不指定具体型号。"""
+    return (not model) or ("*" in str(model))
+
+
 # deepseek v4.1 无档位分级：为兼容升级/档位选择逻辑，三档统一指向同一视觉模型。
 DEFAULT_MODEL_TIERS = {
     "mini": "deepseek-v4.1-flash-expires-on-0910",
@@ -248,8 +259,7 @@ def _post_chat(
     image_bytes = _sample_image_bytes(image_path, image_short_side, jpeg_quality)
     data_uri = _image_data_uri(image_bytes)
 
-    payload = {
-        "model": model,
+    payload: Dict[str, Any] = {
         "messages": [
             {
                 "role": "user",
@@ -260,6 +270,8 @@ def _post_chat(
             }
         ],
     }
+    if not is_wildcard_model(model):     # 通配（* / 空）→ 不带 model，交给端点决定
+        payload["model"] = model
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -484,7 +496,6 @@ def chat_text(
     endpoint = f"{base_url}/chat/completions"
 
     payload = {
-        "model": resolved_model,
         "messages": [
             {
                 "role": "system",
@@ -496,6 +507,8 @@ def chat_text(
             {"role": "user", "content": prompt},
         ],
     }
+    if not is_wildcard_model(resolved_model):   # 通配（* / 空）→ 不带 model，交给端点决定
+        payload["model"] = resolved_model
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -532,6 +545,8 @@ __all__ = [
     "DEFAULT_MODEL_TIERS",
     "DEFAULT_BASE_URL",
     "DEFAULT_MODEL_TIER",
+    "WILDCARD_MODEL",
+    "is_wildcard_model",
 ]
 
 
@@ -643,9 +658,10 @@ def post_chat_messages(
     endpoint = f"{base_url}/chat/completions"
 
     payload = {
-        "model": model,
         "messages": [_coerce_message_content(m, vision) for m in messages],
     }
+    if not is_wildcard_model(model):     # 通配（* / 空）→ 不带 model，交给端点决定
+        payload["model"] = model
 
     headers = {
         "Authorization": f"Bearer {api_key}",
