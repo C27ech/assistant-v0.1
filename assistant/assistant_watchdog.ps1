@@ -4,7 +4,7 @@
 # INVARIANT: this script NEVER kills any process (no Stop-Process, no taskkill anywhere).
 # Process identity comes from the PID registry (runtime\assistant.pid.json) written by
 # main.py, NOT from command-line text matching. Rationale: Win32_Process does not expose
-# the working directory, so `python main.py open-wechat` (plugin child, cwd=controller_v2) is
+# the working directory, so `python main.py ...` (plugin child, cwd=controller_v2) is
 # textually indistinguishable from the real entrypoint. Guessing identity by regex once
 # made this watchdog force-kill plugin children (their exit code was 0xFFFFFFFF).
 #
@@ -73,7 +73,7 @@ function Get-AssistantRecord {
 function Get-AssistantProcFallback {
     # FALLBACK, liveness only (used when the registry is missing / unparsable).
     # Strict pattern + python.exe absolute path: the plugin children
-    # (`python main.py open-wechat`) never match, so they can never be mistaken for the main
+    # (`python main.py ...`) never match, so they can never be mistaken for the main
     # process. The result is only ever turned into "alive / not alive" -- the watchdog has
     # no code path that kills anything.
     return @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
@@ -152,7 +152,7 @@ function Write-DuplicateAdvisory {
     # ADVISORY ONLY -- the result of this function never influences any decision and it
     # never kills anything. Identity is decided by the registry (see Get-AssistantStatus);
     # this is merely one warning line so stray *main-entrypoint* processes stay visible.
-    # Plugin children (`python main.py open-wechat`) do not match, so it produces no log spam.
+    # Plugin children (`python main.py ...`) do not match, so it produces no log spam.
     $cands = Get-AssistantProcFallback
     if ($cands.Count -gt 1) {
         $pids = ($cands | Select-Object -ExpandProperty ProcessId) -join ', '

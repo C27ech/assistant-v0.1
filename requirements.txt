@@ -10,13 +10,10 @@
 # ---------------- 助手本体 ----------------
 openai>=1.40.0              # OpenAI 兼容客户端（DeepSeek / 豆包 / 本地服务都走它）
 python-dotenv>=1.0.1        # 读 .env
-requests>=2.31.0            # 企业微信回调 / 各种 HTTP
-flask>=3.0.0                # 企业微信回调服务器
-pycryptodome>=3.19.0        # 企业微信 AES 加解密
 websocket-client>=1.7.0     # QQ 渠道（OneBot 反向 WebSocket）
-wcferry>=39.5.0; sys_platform == "win32"   # 个人微信 hook（仅 Windows）
 
 # ---------------- 插件：web_tools（联网查资料）----------------
+requests>=2.31.0            # HTTP 请求（web_tools；controller_v2 的视觉接口也用它）
 beautifulsoup4>=4.12.0      # 解析搜索页 / arXiv 的 XML
 playwright>=1.40.0          # 无头浏览器读网页正文（首次用需装浏览器，见该插件 README）
 

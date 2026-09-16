@@ -42,7 +42,7 @@ def main() -> None:
     )
 
     print("发送需求给决策AI ...\n")
-    reply = runtime.handle("console-wxid", "console", task)
+    reply = runtime.handle("console-user", "console", task)
     print("决策AI 回复：")
     print("=" * 50)
     print(reply)

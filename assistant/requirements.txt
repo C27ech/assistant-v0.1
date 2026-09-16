@@ -1,13 +1,5 @@
 openai>=1.40.0
 python-dotenv>=1.0.1
 
-# 企业微信 channel
-flask>=3.0.0
-requests>=2.31.0
-pycryptodome>=3.19.0
-
 # QQ channel（OneBot / NapCat）
 websocket-client>=1.7.0
-
-# 微信 hook（仅 Windows 需要；在非 Windows 环境会自动跳过安装）
-wcferry>=39.5.0 ; sys_platform == "win32"

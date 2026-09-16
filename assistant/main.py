@@ -1,6 +1,6 @@
 """入口：启动助手应用。
 
-默认通过微信(WeChatFerry)运行；`--console` 进入控制台测试模式（不接微信）。
+默认通过 QQ(OneBot) 运行；`--console` 进入控制台测试模式（不接渠道）。
 """
 from __future__ import annotations
 
@@ -18,8 +18,6 @@ from pathlib import Path
 
 from channel.base import IncomingMessage
 from channel.qq_onebot import QQOneBotChannel
-from channel.wechat_ferry import WeChatFerryChannel
-from channel.wecom import WeComChannel
 from config.settings import BASE_DIR, Settings
 from supervisor.runtime import Runtime
 
@@ -33,7 +31,7 @@ LOG = logging.getLogger("assistant")
 # ---------------------------------------------------------------------------
 # 单实例保护（命名 Mutex）+ PID 名册 + 心跳
 #
-# 病根：看门狗曾用「命令行正则猜身份」，把插件子进程 `python main.py 打开微信`
+# 病根：看门狗曾用「命令行正则猜身份」，把插件子进程 `python main.py ...`
 # （cwd=controller_v2，见 plugins.json）误认成第二个主进程，执行 Stop-Process -Force
 # 强杀，子进程退出码 0xFFFFFFFF。治本：进程身份不靠文本推断，只能靠「登记」：
 #   1) 命名 Mutex（内核对象）：同一时刻只允许一个主实例；进程即使被 TerminateProcess
@@ -204,7 +202,7 @@ def cleanup_runtime_files() -> None:
 
 def run_console(runtime: Runtime) -> None:
     print("=== 控制台测试模式 ===")
-    print("输入消息模拟微信用户（空行退出）。")
+    print("输入消息模拟用户（空行退出）。")
     while True:
         try:
             content = input("你: ").strip()
@@ -212,60 +210,8 @@ def run_console(runtime: Runtime) -> None:
             break
         if not content:
             break
-        reply = runtime.handle("console-wxid", "console", content)
+        reply = runtime.handle("console-user", "console", content)
         print(f"助手: {reply}\n")
-
-
-def run_wechat(runtime: Runtime, settings: Settings) -> None:
-    channel = WeChatFerryChannel(settings)
-    runtime.channel = channel
-
-    # 建立 wxid -> 备注 映射
-    remark_map: dict[str, str] = {}
-    try:
-        for c in channel.get_contacts():
-            remark = c.remark or c.name
-            if remark:
-                remark_map[c.wxid] = remark
-    except Exception as e:
-        LOG.warning(f"获取联系人失败: {e}")
-
-    def on_message(msg: IncomingMessage) -> None:
-        if msg.is_self or msg.is_group:
-            return
-        remark = remark_map.get(msg.sender_wxid, msg.sender_wxid)
-        reply = runtime.handle(msg.sender_wxid, remark, msg.content)
-        if not channel.send_text(msg.sender_wxid, reply):
-            LOG.error(f"回发失败给 {msg.sender_wxid}")
-
-    runtime.run_monitor_loop()
-    LOG.info("开始监听微信消息...")
-    channel.run(on_message)
-
-
-def run_wecom(runtime: Runtime, settings: Settings) -> None:
-    channel = WeComChannel(settings)
-    runtime.channel = channel
-
-    # 建立 userid -> 姓名 映射
-    remark_map: dict[str, str] = {}
-    try:
-        for c in channel.get_contacts():
-            name = c.remark or c.name
-            if name:
-                remark_map[c.wxid] = name
-    except Exception as e:
-        LOG.warning(f"获取企业微信联系人失败: {e}")
-
-    def on_message(msg: IncomingMessage) -> None:
-        remark = remark_map.get(msg.sender_wxid, msg.sender_wxid)
-        reply = runtime.handle(msg.sender_wxid, remark, msg.content)
-        if not channel.send_text(msg.sender_wxid, reply):
-            LOG.error(f"回发失败给 {msg.sender_wxid}")
-
-    runtime.run_monitor_loop()
-    LOG.info(f"企业微信回调服务器启动，监听 0.0.0.0:{settings.wecom_port}/callback ...")
-    channel.run(on_message)
 
 
 def run_qq(runtime: Runtime, settings: Settings) -> None:
@@ -274,11 +220,11 @@ def run_qq(runtime: Runtime, settings: Settings) -> None:
 
     def on_message(msg: IncomingMessage) -> None:
         # QQ 私聊：用 QQ 号作为用户标识
-        reply = runtime.handle(msg.sender_wxid, msg.sender_wxid, msg.content, images=msg.images)
+        reply = runtime.handle(msg.sender_id, msg.sender_id, msg.content, images=msg.images)
         if not reply:
             return  # 空回复（未授权白名单 / 无需回复）→ 不发消息，避免发出空白消息
-        if not channel.send_text(msg.sender_wxid, reply):
-            LOG.error(f"回发失败给 {msg.sender_wxid}")
+        if not channel.send_text(msg.sender_id, reply):
+            LOG.error(f"回发失败给 {msg.sender_id}")
 
     runtime.run_monitor_loop()
     LOG.info(f"QQ 渠道启动，连接 OneBot WebSocket: {settings.qq_onebot_url} ...")
@@ -289,8 +235,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AI 助手")
     parser.add_argument("--console", action="store_true", help="控制台测试模式（不接渠道）")
     parser.add_argument(
-        "--channel", choices=["wechat", "wecom", "qq"], default=None,
-        help="渠道类型（默认取 .env 的 CHANNEL）",
+        "--channel", choices=["qq"], default=None,
+        help="渠道类型（只剩 QQ；默认取 .env 的 CHANNEL）",
     )
     args = parser.parse_args()
 
@@ -305,6 +251,10 @@ def main() -> None:
     runtime = Runtime(settings)
 
     channel = args.channel or settings.channel
+    if channel != "qq":
+        # 个人微信 / 企业微信渠道已移除：老 .env 写的 CHANNEL=wechat/wecom 一律按 QQ 启动
+        LOG.warning("CHANNEL=%s 已不再支持（渠道只保留 QQ），本次按 QQ 启动", channel)
+        channel = "qq"
 
     if not console_mode:
         # 抢到 Mutex 后才登记名册 + 起心跳：看门狗只认这份登记，不再猜命令行。
@@ -322,12 +272,8 @@ def main() -> None:
     try:
         if console_mode:
             run_console(runtime)
-        elif channel == "wecom":
-            run_wecom(runtime, settings)
-        elif channel == "qq":
-            run_qq(runtime, settings)
         else:
-            run_wechat(runtime, settings)
+            run_qq(runtime, settings)
     finally:
         if not console_mode:
             cleanup_runtime_files()     # try-finally 兜底（atexit 之外的退出路径）

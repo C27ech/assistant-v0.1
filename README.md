@@ -2,7 +2,7 @@
 
 > 她**不自己写代码**。她是「统筹者」：理解你的需求 → 判断**现成插件能不能干** → 能干就直接调插件；干不了才**派代码 AI 去写** → 盯进度 → 把真实结果汇报给你。
 >
-> 支持三种聊天渠道：**QQ（OneBot / NapCat）**、**个人微信（WeChatFerry）**、**企业微信（自建应用回调）**。
+> 只支持一种聊天渠道：**QQ（OneBot / NapCat）**。
 
 ---
 
@@ -41,7 +41,7 @@
 
 ```
                     ┌──────────────────────────────┐
-   你（聊天软件） ──▶ │  渠道层 channel/             │  QQ / 微信 / 企业微信
+   你（聊天软件） ──▶ │  渠道层 channel/             │  QQ / OneBot
                     └──────────────┬───────────────┘
                                    ▼
                     ┌──────────────────────────────┐
@@ -95,7 +95,7 @@
 
 | 功能 | 说明 |
 |------|------|
-| 多渠道 | QQ（OneBot/NapCat）、个人微信（WeChatFerry）、企业微信（回调 + 加解密） |
+| 渠道 | 只保留 **QQ（OneBot / NapCat 反向 WebSocket）**；只处理私聊，支持收图（转 base64 给视觉模型） |
 | 工具循环 | 自主多轮调工具，`DECISION_MAX_ITER` 可配（默认 200） |
 | 长期记忆 | SQLite 全量落库；每轮用 **TF-IDF 字符 n-gram 语义检索**召回 30 条相关旧事（`MEMORY_RETRIEVAL_K`） |
 | 代码 AI 调度 | 派活/停止/重启/列表；可并行多只；工作目录隔离 |
@@ -144,7 +144,7 @@ assistant_v0.1/
 │   │   ├── plugins.py           ← 插件执行器：占位符 / 子进程 / 日志 / 超时
 │   │   └── style.py             ← 风格引擎：说明书 + 动态例句检索
 │   ├── channel/                 ← 渠道适配（统一成 IncomingMessage）
-│   │   ├── base.py  qq_onebot.py  wechat_ferry.py  wecom.py  wecom_crypto.py
+│   │   ├── base.py  qq_onebot.py
 │   ├── supervisor/              ← 大脑
 │   │   ├── runtime.py           ← 消息主流程 + 工具执行器 + 护栏
 │   │   ├── decision.py          ← 决策 AI（系统提示词 / 工具 schema / 工具循环）
@@ -182,7 +182,7 @@ assistant_v0.1/
 ### 1. 环境要求
 
 - **Python 3.11+**（开发环境用的是 3.14）
-- **Windows**（桌面控制 / 截图 / 微信 hook 依赖 Windows；纯聊天+联网+读文件在 Linux 也能跑）
+- **Windows**（桌面控制 / 截图依赖 Windows；纯聊天+联网+读文件在 Linux 也能跑）
 - 一个 DeepSeek API Key（<https://platform.deepseek.com>）
 
 ### 2. 装依赖
@@ -209,21 +209,17 @@ ALLOWED_USERS=你的QQ号          # 强烈建议填！否则任何给你机器�
 
 完整配置项见[第六节](#六配置说明env)。
 
-### 4. 接渠道
+### 4. 接渠道（只有 QQ）
 
-**QQ（推荐）**
+**QQ**
 
 1. 装一个 QQ 机器人框架（如 **NapCat**），登录你的机器人 QQ 号
 2. 在框架里开一个**反向 WebSocket**，地址 `ws://127.0.0.1:3001`
 3. `.env` 里保持 `QQ_ONEBOT_URL=ws://127.0.0.1:3001`（默认值）
 4. 用**你自己**的 QQ 私聊机器人号即可（只处理私聊，群消息会被忽略）
 
-**个人微信（WeChatFerry）**：`.env` 里 `CHANNEL=wechat`，`WCF_HOST` 留空表示本地启动。
-需要匹配版本的微信 PC 客户端 + WeChatFerry 的 DLL。
-
-**企业微信（自建应用）**：`.env` 里 `CHANNEL=wecom`，填
-`WECOM_CORP_ID / WECOM_AGENT_ID / WECOM_SECRET / WECOM_TOKEN / WECOM_AES_KEY`，
-回调地址指向 `http://你的地址:8080/callback`。
+> 个人微信（WeChatFerry）与企业微信（自建应用回调）两种渠道**已从仓库移除**，只保留 QQ。
+> `.env` 里若还写着 `CHANNEL=wechat` / `CHANNEL=wecom`，启动时会按 QQ 运行并打一行告警。
 
 ### 5. 启动
 
@@ -279,10 +275,8 @@ powershell -ExecutionPolicy Bypass -File assistant\assistant_watchdog.ps1
 | `MONITOR_MODEL` | `deepseek-v4-flash` | 监控模型 |
 | `CODER_MODEL` | `deepseek-v4-flash` | 代码 AI 默认模型 |
 | `DOUBAO_API_KEY` / `DOUBAO_BASE_URL` | — | 火山方舟（豆包）key；配了之后派活可选豆包模型 |
-| `CHANNEL` | `wechat` | `qq` / `wechat` / `wecom` |
+| `CHANNEL` | `qq` | 渠道类型（只剩 `qq`） |
 | `QQ_ONEBOT_URL` | `ws://127.0.0.1:3001` | QQ 渠道的 OneBot WebSocket 地址 |
-| `WCF_HOST` / `WCF_PORT` / `WCF_DEBUG` / `WCF_BLOCK` | 空 / `10086` / `false` / `true` | 个人微信（WeChatFerry） |
-| `WECOM_*` | — | 企业微信自建应用（corp_id / agent_id / secret / token / aes_key / port） |
 | **`ALLOWED_USERS`** | 空 | **使用者白名单**（逗号/空格分隔）。留空 = 任何人私聊都能指挥她 ⚠️ |
 | `USER_MAP` | 空 | 备注名 → user_id 映射，如 `老板:boss,同事:colleague` |
 | `MEMORY_RETRIEVAL_K` | `30` | 每轮语义召回的历史条数（越大越记事儿，也越费 token） |
@@ -420,13 +414,13 @@ cd assistant
 python -m pytest tests -q          # 或者逐个 python tests\test_xxx.py
 ```
 
-覆盖：存储/检索、决策工具、编排器、监控、渠道解析、企业微信加解密、代码 AI 循环、shell 工具编码。
+覆盖：存储/检索、决策工具、编排器、监控、QQ 渠道解析、代码 AI 循环、shell 工具编码。
 
 ---
 
 ## 十一、已知限制
 
-- **Windows 优先**：桌面控制、截图、微信 hook 都依赖 Windows。核心（对话/记忆/联网/读文件）跨平台。
+- **Windows 优先**：桌面控制、截图依赖 Windows。核心（对话/记忆/联网/读文件）跨平台。
 - **没有重放机制**：助手进程在你发消息时恰好挂了，那条消息不会自动补答（重启后她也不记得要回）。
 - **风格不是微调**：只能"很像"，到不了 100% 复刻；检索是 TF-IDF 关键词匹配，认话题不认同义词。
 - **读文件只读文本**：图片/PDF/Office/数据库会提示是二进制（想支持可以加 `pypdf` / `python-docx`）。

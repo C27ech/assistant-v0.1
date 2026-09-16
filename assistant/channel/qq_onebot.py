@@ -12,7 +12,7 @@ from typing import Callable
 
 from config.settings import Settings
 
-from .base import Channel, Contact, IncomingMessage, MSG_TYPE_IMAGE, MSG_TYPE_TEXT
+from .base import Channel, IncomingMessage, MSG_TYPE_IMAGE, MSG_TYPE_TEXT
 
 
 class QQOneBotChannel(Channel):
@@ -66,9 +66,6 @@ class QQOneBotChannel(Channel):
             if not self._send_payload(payload):
                 ok = False
         return ok
-
-    def get_contacts(self) -> list[Contact]:
-        return []  # QQ 好友列表需额外 API，MVP 暂不实现
 
     @staticmethod
     def _extract_text(event: dict) -> str:
@@ -167,7 +164,7 @@ class QQOneBotChannel(Channel):
                         target=on_message,
                         args=(
                             IncomingMessage(
-                                sender_wxid=sender,
+                                sender_id=sender,
                                 content=text,
                                 msg_type=msg_type,
                                 images=images,

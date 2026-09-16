@@ -59,8 +59,6 @@ C:\path\to\assistant_v0.1\assistant\
 ├── channel\
 │   ├── base.py
 │   ├── qq_onebot.py           # QQ/OneBot WebSocket 客户端（ws://127.0.0.1:3001）
-│   ├── wechat_ferry.py
-│   ├── wecom.py / wecom_crypto.py
 ├── llm\
 │   └── deepseek.py            # DeepSeek/豆包统一 LLM 客户端
 ├── storage\

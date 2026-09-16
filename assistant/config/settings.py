@@ -72,22 +72,8 @@ class Settings:
     doubao_api_key: str = ""
     doubao_base_url: str = "https://ark.cn-beijing.volces.com/api/v3"
 
-    # --- 微信（WeChatFerry）---
-    wcf_host: Optional[str] = None
-    wcf_port: int = 10086
-    wcf_debug: bool = False
-    wcf_block: bool = True
-
-    # --- 渠道选择 ---
-    channel: str = "wechat"  # wechat / wecom
-
-    # --- 企业微信（自建应用 + 回调）---
-    wecom_corp_id: str = ""
-    wecom_agent_id: str = ""
-    wecom_secret: str = ""
-    wecom_token: str = ""
-    wecom_aes_key: str = ""
-    wecom_port: int = 8000
+    # --- 渠道选择：只保留 QQ（OneBot / NapCat）---
+    channel: str = "qq"
 
     # --- QQ（OneBot / NapCat）---
     qq_onebot_url: str = "ws://127.0.0.1:3001"
@@ -132,17 +118,7 @@ class Settings:
             api_key_coder=_env("DEEPSEEK_API_KEY_CODER") or None,
             doubao_api_key=_env("DOUBAO_API_KEY", ""),
             doubao_base_url=_env("DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"),
-            wcf_host=_env("WCF_HOST") or None,
-            wcf_port=int(_env("WCF_PORT", "10086") or "10086"),
-            wcf_debug=_env_bool("WCF_DEBUG", False),
-            wcf_block=_env_bool("WCF_BLOCK", True),
-            channel=_env("CHANNEL", "wechat"),
-            wecom_corp_id=_env("WECOM_CORP_ID"),
-            wecom_agent_id=_env("WECOM_AGENT_ID"),
-            wecom_secret=_env("WECOM_SECRET"),
-            wecom_token=_env("WECOM_TOKEN"),
-            wecom_aes_key=_env("WECOM_AES_KEY"),
-            wecom_port=int(_env("WECOM_PORT", "8000") or "8000"),
+            channel=_env("CHANNEL", "qq"),
             qq_onebot_url=_env("QQ_ONEBOT_URL", "ws://127.0.0.1:3001"),
             desktop_controller_dir=_env("DESKTOP_CONTROLLER_DIR", "") or str(Path.home() / "Desktop" / "controller"),
             user_map=_parse_user_map(_env("USER_MAP")),
@@ -163,7 +139,7 @@ class Settings:
         """使用者白名单校验。
 
         白名单为空 → 不限制（返回 True，保持向后兼容）。
-        非空 → 只要任意一个标识（QQ 号 / 微信号 / 解析后的 user_id）在名单里就放行。
+        非空 → 只要任意一个标识（QQ 号 / 解析后的 user_id）在名单里就放行。
         """
         if not self.allowed_users:
             return True

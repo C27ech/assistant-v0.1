@@ -1,4 +1,4 @@
-"""运行时：把决策AI、编排器、监控AI、微信渠道接起来，形成完整闭环。"""
+"""运行时：把决策AI、编排器、监控AI、渠道接起来，形成完整闭环。"""
 from __future__ import annotations
 
 import json
@@ -36,7 +36,7 @@ class Runtime:
                 settings.deepseek_base_url,
             )
         self.monitor = Monitor(self.repo, stuck_timeout=60, llm_client=flash_client)
-        self.user_wxid: dict[str, str] = {}  # user_id -> wxid
+        self.user_ids: dict[str, str] = {}  # user_id -> 该用户在渠道里的标识（QQ 号）
         self._decision_lock = threading.Lock()  # 串行化「agent 状态变化」触发的决策，避免并发重复派活
 
         # 外部 CLI 插件（plugins.json）：每个插件自动生成一个可调用工具
@@ -64,17 +64,18 @@ class Runtime:
             self.decision = None
 
     # ---------- 消息处理 ----------
-    def handle(self, sender_wxid: str, remark: str, content: str, images: list | None = None) -> str:
+    def handle(self, sender_id: str, remark: str, content: str, images: list | None = None) -> str:
         # 使用者白名单：不在名单里的一律静默忽略（不入库、不回复、只记日志，避免被陌生人使唤）
-        if not self.settings.is_allowed(sender_wxid, remark):
+        if not self.settings.is_allowed(sender_id, remark):
             snip = (content or "[图片]").replace("\n", " ")[:40]
-            print(f"[白名单] 已忽略未授权消息：sender={sender_wxid} 内容前40字={snip!r}",
+            print(f"[白名单] 已忽略未授权消息：sender={sender_id} 内容前40字={snip!r}",
                   file=sys.stderr, flush=True)
             return ""
 
         user_id = self.settings.resolve_user(remark) or remark
-        self.user_wxid[user_id] = sender_wxid
-        self.repo.upsert_user(user_id, wxid=sender_wxid, remark=remark)
+        self.user_ids[user_id] = sender_id
+        # users.wxid 列沿用旧列名（兼容已有数据库），存的就是渠道内的用户标识（QQ 号）
+        self.repo.upsert_user(user_id, wxid=sender_id, remark=remark)
 
         # 先取历史（此时本条还没入库，上下文里就不会重复出现本条），再落库
         history = self._history(user_id, content)
@@ -208,9 +209,9 @@ class Runtime:
     def _send(self, user_id: str, content: str) -> None:
         self.repo.add_message(user_id, "out", content)
         if self.channel:
-            wxid = self.user_wxid.get(user_id)
-            if wxid:
-                self.channel.send_text(wxid, content)
+            receiver = self.user_ids.get(user_id)
+            if receiver:
+                self.channel.send_text(receiver, content)
         else:
             # 控制台模式：直接打印，便于看到监控/汇报消息
             print(f"[推送] {content}")

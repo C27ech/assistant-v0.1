@@ -3,7 +3,7 @@
 ## 1. 一次对话的完整链路
 
 ```
-QQ / 微信 / 企微
+QQ（OneBot / NapCat）
    │  ① 收到消息
    ▼
 channel/*.py ──► IncomingMessage(sender, content, images)

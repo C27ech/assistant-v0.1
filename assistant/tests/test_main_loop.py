@@ -1,4 +1,4 @@
-"""主链路冒烟测试：Supervisor.handle 的存取 + 回显，不依赖微信/DeepSeek。
+"""主链路冒烟测试：Supervisor.handle 的存取 + 回显，不依赖渠道/DeepSeek。
 
 运行：`python tests/test_main_loop.py`
 """
@@ -21,7 +21,7 @@ def test_handle() -> None:
 
         sv = Runtime(settings)
 
-        reply = sv.handle("wxid_1", "老板", "帮我做一个计算器")
+        reply = sv.handle("10001", "老板", "帮我做一个计算器")
         assert "收到" in reply, f"回显应包含『收到』，实际: {reply!r}"
 
         history = sv.repo.get_history("老板")
