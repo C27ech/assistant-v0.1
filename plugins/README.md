@@ -5,7 +5,7 @@
 
 注册方式见 [`../docs/PLUGIN_PROTOCOL.md`](../docs/PLUGIN_PROTOCOL.md)。
 
-## 一、随仓库附带的 5 个插件（15 个工具）
+## 一、随仓库附带的 4 个插件（8 个工具）
 
 | 插件 | 目录 | 工具 | 依赖 | 说明 |
 |------|------|------|------|------|
@@ -13,7 +13,6 @@
 | **web_tools** | [`web_tools/`](web_tools/) | `web_search` `fetch_page` | requests, bs4, playwright | 联网搜索（学术自动改道 + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | [`controller_v2/`](controller_v2/) | `desktop_task_v2` | requests, pillow, pyautogui, pynput, pywin32 | 自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
 | **screenshot2qq** | [`screenshot2qq/`](screenshot2qq/) | `send_screenshot` | pillow, pyautogui | 截全屏并直接发到你的 QQ 私聊 |
-| **sg_bridge** | [`sg_bridge/`](sg_bridge/) | `sg_games` `sg_attach` `sg_status` `sg_action` `sg_read_screen` `sg_click_text` `sg_key` | pynput, pywin32, pytesseract(可选) | 把游戏键鼠操作 + OCR 读屏做成接口（游戏自动化示例） |
 
 > 每个插件目录里都有自己的 README，写清了用法、参数、踩过的坑。
 

@@ -27,7 +27,7 @@
 
 一个可自托管的 AI 助手。跟「聊天机器人」的区别在于：**她有手**。
 
-- **有插件**：能操作 Windows 桌面、能联网查资料、能读写本机文件、能截图发到你的聊天窗口、能操控游戏。
+- **有插件**：能操作 Windows 桌面、能联网查资料、能读写本机文件、能截图发到你的聊天窗口。
 - **有手下**：遇到「要写新代码」的活，她会**派子进程里的代码 AI** 去干（可并行多只），自己盯进度。
 - **有记忆**：历史全部落库，每轮用 **TF-IDF 语义检索**召回相关旧事，不会聊两句就失忆。
 - **有人格**：说话风格由**你自己的语料**蒸馏出来（可选），也能跑纯功能模式。
@@ -55,7 +55,7 @@
         ┌───────────────────────┐  ┌──────────────────────────┐
         │ 插件层 plugins.json    │  │ 代码 AI agents/worker.py │
         │ = 外部 CLI 子进程      │  │ 独立子进程，可多只并行    │
-        │ 桌面/联网/文件/游戏…   │  │ 工具：读写文件、跑命令     │
+        │ 桌面/联网/文件…       │  │ 工具：读写文件、跑命令     │
         └───────────────────────┘  └────────────┬─────────────┘
                                                 │ 事件流
                                    ┌────────────▼─────────────┐
@@ -109,7 +109,7 @@
 | 单实例闸门 | 全局 Mutex，防止多实例抢消息 |
 | 可观测 | 消息/任务/事件全落 SQLite；插件子进程 stdout/stderr 逐个落盘 |
 
-### 随仓库附带的 5 个插件（合计 15 个工具）
+### 随仓库附带的 4 个插件（合计 8 个工具）
 
 | 插件 | 工具 | 干什么 |
 |------|------|--------|
@@ -117,7 +117,6 @@
 | **web_tools** | `web_search` `fetch_page` | 联网搜索（学术自动改道 arXiv/OpenAlex/Crossref + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | `desktop_task_v2` | 用自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
 | **screenshot2qq** | `send_screenshot` | 截全屏并直接发到指定 QQ 私聊 |
-| **sg_bridge** | `sg_games` `sg_attach` `sg_status` `sg_action` `sg_read_screen` `sg_click_text` `sg_key` | 把游戏键鼠操作 + OCR 读屏变成可调用接口（游戏自动化示例） |
 
 ---
 
@@ -169,8 +168,7 @@ assistant_v0.1/
 │
 └── plugins/                     ← 插件（每个都是独立可跑的 CLI）
     ├── README.md                ← 插件总览 + 怎么写新插件
-    ├── file_tools/  web_tools/  controller_v2/  screenshot2qq/
-    └── sg_bridge/               ← 含 launchers/（.cmd 启动器）
+    └── file_tools/  web_tools/  controller_v2/  screenshot2qq/
 ```
 
 > ⚠️ **`assistant/tools/` 和 `plugins/` 是两回事**：
@@ -350,7 +348,7 @@ echo print("hello from plugin") > plugins\my_plugin\main.py
 **建议**：一个工具干一件事；`description` 里写清"什么时候用、返回什么、有什么禁区"；
 输出用纯文本（模型读起来最省事）。
 
-随仓库附带的 5 个插件见 [`plugins/README.md`](plugins/README.md) 与各自的 README。
+随仓库附带的 4 个插件见 [`plugins/README.md`](plugins/README.md) 与各自的 README。
 
 ---
 
@@ -405,7 +403,7 @@ python scripts\build_style_guide.py
 | **使用者白名单** | `settings.py` + `runtime.py` | `ALLOWED_USERS` 非空时，名单外的人发消息 → **静默忽略**（不回复、不入库，只记一行日志） |
 | **敏感文件硬拦截** | `plugins/file_tools` | `.env`、`config.json`、私钥/证书、SSH key、浏览器 Cookie/Login Data、云凭据、QQ 登录态、Windows 凭据库… 一律拒绝，**规则内置在代码里，只能追加不能取消** |
 | **可读范围** | `plugins/file_tools/config.json` | `roots` 控制能读哪些目录树（`"*"` = 全盘，建议按需收窄） |
-| **危险动作需审批** | `tools/approval.py` + 插件描述 | 如游戏「退出/回标题/覆盖存档」需要 `allow_dangerous=true`，且提示词要求**先问过你** |
+| **危险动作需审批** | `tools/approval.py` + 插件描述 | 不可逆动作（退出 / 覆盖 / 删除之类）在插件层要求 `allow_dangerous=true`，且提示词要求**先问过你** |
 | **代码 AI 沙箱** | `tools/file_tools.py` | 代码 AI 的读写被限制在**它的工作目录**内，越界直接报错 |
 | **单实例闸门** | `main.py` | 全局 Mutex，避免多实例抢同一条消息 |
 | **错误不再静默** | `supervisor/runtime.py` | 模型调用失败（余额 402 / 限流 / 超时）会**回一条能看懂的原因**，而不是让你干等 |
@@ -442,8 +440,7 @@ python -m pytest tests -q          # 或者逐个 python tests\test_xxx.py
 
 MIT License，见 [`LICENSE`](LICENSE)。
 
-仓库内**不包含**任何第三方作品的文本、图像或游戏资源；
-`plugins/sg_bridge` 只是「键鼠 + OCR」的自动化示例，不含游戏素材。
+仓库内**不包含**任何第三方作品的文本、图像或游戏资源。
 
 
 
