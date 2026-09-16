@@ -475,11 +475,11 @@ def _tidy(text: str) -> str:
 
 
 def cmd_fetch(args) -> int:
-    # 本机打不开的域名：立刻返回，别白等 70 秒
+    # 本机打不开的域名：直接返回，不等 70 秒超时
     if is_unreachable(args.url):
         print(
             f"（跳过：{_host(args.url)} 在本机网络下无法访问——维基系域名在中国大陆连不上，"
-            "抓它只会白等约 70 秒后失败。请换来源：百度百科 / 萌娘百科 / 搜狗百科 / arXiv / "
+            "抓它要等约 70 秒才失败。请换来源：百度百科 / 萌娘百科 / 搜狗百科 / arXiv / "
             "OpenAlex / 知乎 / GitHub，或改用 web_search 换个关键词重新找。）"
         )
         return 0

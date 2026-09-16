@@ -48,7 +48,7 @@ ALLOWED_USERS=你的QQ号
 
 - `tools/approval.py`：代码 AI 的危险操作触发审批闸门（返回 `NEED_APPROVAL:<路径>`）
 - 插件层：不可逆动作（退出 / 覆盖 / 删除之类）走 `allow_dangerous=true`，
-  且工具说明里写明**必须先征得用户同意**
+  且工具说明里写明**需先征得用户同意**
 - 执行器把布尔统一转小写 `true/false`（否则 `str(False)="False"` 会被当成真值放行）
 
 ## 4. 代码 AI 沙箱

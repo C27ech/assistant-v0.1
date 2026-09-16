@@ -47,7 +47,7 @@ channel.send_text(...)
 - `worker.py` 是子进程入口：跑一个 `CodingAgent`，把过程写成 `events` 行
 - `coding_agent.py`：`think → 调工具 → 观察 → 再 think`，直到完成或到步数上限
 - 它的工具来自 `tools/`（`file_tools.py` 读写文件、`shell_tools.py` 跑命令）+ 审批闸门
-- **两条纪律**：
+- **两条约束**：
   - 越界保护：文件操作限制在自己的工作目录里
   - 编码统一 UTF-8（`encoding="utf-8", errors="replace"` + 子进程注入 `PYTHONUTF8=1`），
     否则中文 Windows 上 `text=True` 会拿 GBK 解码 UTF-8 输出，中文命令结果全部丢失、agent 直接崩
