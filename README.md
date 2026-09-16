@@ -31,7 +31,7 @@
 - **有手下**：遇到「要写新代码」的活，她会**派子进程里的代码 AI** 去干（可并行多只），自己盯进度。
 - **有记忆**：历史全部落库，每轮用 **TF-IDF 语义检索**召回相关旧事，不会聊两句就失忆。
 - **有人格**：说话风格由**你自己的语料**蒸馏出来（可选），也能跑纯功能模式。
-- **有护栏**：使用者白名单、敏感文件硬拦截、危险动作需审批、防「幻觉派活」。
+- **有护栏**：使用者白名单、敏感文件拦截、危险动作需审批、防「幻觉派活」。
 
 一句话：**你提需求 → 她拆解、调工具、派人、汇报，并且不骗你。**
 
@@ -113,7 +113,7 @@
 
 | 插件 | 工具 | 干什么 |
 |------|------|--------|
-| **file_tools** | `read_file` `list_dir` `find_files` `grep_files` | 读本机文本文件 / 列目录 / 按名找 / 搜内容（**敏感文件硬拦截**） |
+| **file_tools** | `read_file` `list_dir` `find_files` `grep_files` | 读本机文本文件 / 列目录 / 按名找 / 搜内容（**敏感文件拦截**） |
 | **web_tools** | `web_search` `fetch_page` | 联网搜索（学术自动改道 arXiv/OpenAlex/Crossref + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | `desktop_task_v2` | 用自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
 | **screenshot2qq** | `send_screenshot` `list_windows` `list_monitors` | 截全屏 / 指定窗口 / 某台显示器 / 一块区域并直接发到指定 QQ 私聊（图过大自动缩小；含分辨率/缩放自适应） |
@@ -302,13 +302,13 @@ powershell -ExecutionPolicy Bypass -File assistant\assistant_watchdog.ps1
 ```json
 {
   "web_search": {
-    "description": "给大模型看的工具说明：什么时候该用、返回什么、有什么坑",
+    "description": "联网搜索资料：普通问题走网页搜索，学术问题走论文库；返回带来源标注的结果",
     "command": ["python", "main.py", "search", "{query}", "--source={source}"],
     "cwd": "plugins/web_tools",
     "timeout": 120,
     "params": {
       "query":  {"type": "string", "description": "查询词", "required": true},
-      "source": {"type": "string", "description": "auto / web / academic（可选）"}
+      "source": {"type": "string", "description": "auto=自动选库（默认）；web=只搜网页；academic=只查学术论文库"}
     }
   }
 }
@@ -317,20 +317,20 @@ powershell -ExecutionPolicy Bypass -File assistant\assistant_watchdog.ps1
 | 字段 | 说明 |
 |------|------|
 | 键名 | 工具名（大模型看到的名字） |
-| `description` | **最重要**：写好它，模型才知道何时调用；可以在这里写纪律（「每次最多抓 3 页」） |
+| `description` | 工具说明，模型据此判断要不要调用。写清：什么时候用、返回什么、有哪些限制（如「每次最多抓 3 页」） |
 | `command` | 数组形式的命令模板，`{参数名}` 会被替换成实参 |
 | `cwd` | 子进程工作目录。**可以是相对路径**（相对 `assistant/` 解析），也支持绝对路径 |
 | `timeout` | 秒；超时会终止子进程，并把已产生的输出落盘 |
 | `params` | 参数 schema，会转成 OpenAI function-calling 的 JSON Schema |
 | `required` | 不在 `required` 里的参数是**可选**的 |
 
-### 三个容易踩的坑（本仓库已处理）
+### 参数模板的三个常见问题（本仓库已处理）
 
 1. **可选参数的整段跳过**：写 `["--source", "{source}"]` 时，如果模型没传 `source`，
    就会留下一个光秃秃的 `--source` → argparse 报错。
    **正确写法**：`["--start={start_line}"]`（flag 和值放同一段，整段一起被跳过）。
 2. **布尔值**：`str(False)` 会变成字符串 `"False"`，在命令行里反而是**真值**。
-   执行器已统一转成小写 `true/false`。危险开关务必用 `{allow_dangerous}` 这种形式。
+   执行器已统一转成小写 `true/false`。危险开关用 `{allow_dangerous}` 这种形式。
 3. **编码**：子进程统一以 UTF-8 读写，并注入 `PYTHONUTF8=1`，
    否则中文 Windows 下 `text=True` 会用 GBK 解码，中文输出直接崩。
 
@@ -345,7 +345,7 @@ echo print("hello from plugin") > plugins\my_plugin\main.py
 :: 3) 重启助手 → 她就多了一个 my_plugin 工具
 ```
 
-**建议**：一个工具干一件事；`description` 里写清"什么时候用、返回什么、有什么禁区"；
+**建议**：一个工具做一件事；`description` 里写清"什么时候用、返回什么、有哪些限制"；
 输出用纯文本（模型读起来最省事）。
 
 随仓库附带的 4 个插件见 [`plugins/README.md`](plugins/README.md) 与各自的 README。
@@ -401,14 +401,14 @@ python scripts\build_style_guide.py
 | 防线 | 在哪 | 作用 |
 |------|------|------|
 | **使用者白名单** | `settings.py` + `runtime.py` | `ALLOWED_USERS` 非空时，名单外的人发消息 → **静默忽略**（不回复、不入库，只记一行日志） |
-| **敏感文件硬拦截** | `plugins/file_tools` | `.env`、`config.json`、私钥/证书、SSH key、浏览器 Cookie/Login Data、云凭据、QQ 登录态、Windows 凭据库… 一律拒绝，**规则内置在代码里，只能追加不能取消** |
+| **敏感文件拦截** | `plugins/file_tools` | `.env`、`config.json`、私钥/证书、SSH key、浏览器 Cookie/Login Data、云凭据、QQ 登录态、Windows 凭据库… 一律拒绝，**规则内置在代码里，只能追加不能取消** |
 | **可读范围** | `plugins/file_tools/config.json` | `roots` 控制能读哪些目录树（`"*"` = 全盘，建议按需收窄） |
 | **危险动作需审批** | `tools/approval.py` + 插件描述 | 不可逆动作（退出 / 覆盖 / 删除之类）在插件层要求 `allow_dangerous=true`，且提示词要求**先问过你** |
 | **代码 AI 沙箱** | `tools/file_tools.py` | 代码 AI 的读写被限制在**它的工作目录**内，越界直接报错 |
 | **单实例闸门** | `main.py` | 全局 Mutex，避免多实例抢同一条消息 |
 | **错误不再静默** | `supervisor/runtime.py` | 模型调用失败（余额 402 / 限流 / 超时）会**回一条能看懂的原因**，而不是让你干等 |
 
-**建议**：`ALLOWED_USERS` 一定要填；`roots` 不要无脑给全盘；
+**建议**：`ALLOWED_USERS` 填上；`roots` 按需收窄，不给全盘；
 给助手开新插件时，先想一遍「别人能不能借它读我的密钥」。
 
 ---

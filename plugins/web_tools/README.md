@@ -42,7 +42,7 @@ python main.py fetch "https://baike.baidu.com/item/图灵机" --max 4000
 | 学术来源 | 一手文献额外加权 | **+1** |
 | **合计 ≤ −3** | 直接丢弃 | — |
 
-**输出会标注来源可信度**，助手据此把握引用分寸：
+**每条结果都带来源标注**，助手引用时据此区分：
 
 ```
 1. ［社区经验］什么是 图灵机 ？ - 知乎
@@ -59,7 +59,7 @@ python main.py fetch "https://baike.baidu.com/item/图灵机" --max 4000
 
 | 标签 | 含义 |
 |------|------|
-| ［文献 YYYY］ | 学术库一手论文（最可信）|
+| ［文献 YYYY］ | 学术库一手论文（带发表年份）|
 | ［权威］ | 官方文档 / 代码仓库 / 政府教育站 |
 | ［社区经验］ | 知乎 / CSDN 等（有参考价值但非权威）|
 | ［百科·可信度低］ | 可自由编辑的百科站（只能当线索）|
@@ -72,7 +72,7 @@ python main.py fetch "https://baike.baidu.com/item/图灵机" --max 4000
 | `python asyncio 教程` | 官方文档（权威）排在 CSDN（社区经验）之前 |
 | `catastrophic forgetting fine-tuning language model` | 检出「70% 是词典站」→ arXiv **5 篇靶心论文**（带摘要）|
 | `AI Agent 记忆 人格 漂移 研究` | arXiv 4 篇（AI Agent 架构综述、多智能体共谋机制、agentic AI 安全综述）|
-| `深度学习 论文` | 正确**不**硬走英文库 → GitHub 精读仓库 / 知乎 / CSDN |
+| `深度学习 论文` | 正确**不**走英文库 → GitHub 精读仓库 / 知乎 / CSDN |
 | `--source academic` + `memory drift LLM agent` | Memory-Induced Tool-Drift / CAPTURE / Agent Drift（正是本项目关心的题）|
 
 ## 各引擎可用性（本机实测）
@@ -123,7 +123,7 @@ python main.py fetch "https://baike.baidu.com/item/图灵机" --max 4000
 - 🔧 **本插件已做的优化**：
   1. `wikipedia.org` 全系加入「本机不可达」名单 → **搜索时直接剔除结果，抓取时 0 秒快速失败**（省下每次 70 秒），并提示换来源；
   2. 浏览器超时 45s → **20s**，HTTP 兜底超时 25s → **12s**（最坏 32 秒而不是 70 秒）；
-  3. `fetch_page` 的说明里加了纪律：**每次查资料最多抓 3 个页面**、摘要够用就别抓。
+  3. `fetch_page` 的说明里写了限制：**每次查资料最多抓 3 个页面**、摘要够用就不用再抓。
 
 ## 依赖
 
@@ -141,6 +141,6 @@ python main.py fetch "https://baike.baidu.com/item/图灵机" --max 4000
 
 - 需要联网。Bing 对中文长尾词分词偶尔很糟（实测会把专有名词拆成更短的词）→ 查询尽量用专有名词。
 - 登录墙 / 复杂验证码 / 纯视频页抓不到（会提示「换一个来源」）。
-- 学术库都是英文库；**纯中文查询不会硬走它们**（想强制用 `--source academic`），所以中文论文还得靠网页搜索。
+- 学术库都是英文库；**纯中文查询不会走它们**（想强制用 `--source academic`），所以中文论文还得靠网页搜索。
 - 正文会截断（`--max`，默认 4000 字），避免超出模型上下文。
 

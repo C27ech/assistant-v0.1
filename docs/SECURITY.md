@@ -3,7 +3,7 @@
 这套系统的攻击面很特别：**它连着一个聊天软件，而且能操作本机**。
 也就是说，「谁能给它发消息」＝「谁能用你电脑上的这些权限」。所以护栏必须是设计的一部分。
 
-## 1. 使用者白名单（最重要的一道）
+## 1. 使用者白名单（第一道防线）
 
 ```ini
 # assistant/.env
@@ -21,7 +21,7 @@ ALLOWED_USERS=你的QQ号
 
 代码：`config/settings.py::is_allowed()` + `supervisor/runtime.py::handle()` 开头。
 
-## 2. 敏感文件硬拦截（读文件插件）
+## 2. 敏感文件拦截（读文件插件）
 
 `plugins/file_tools` 有**三层**：
 
@@ -37,7 +37,7 @@ ALLOWED_USERS=你的QQ号
 `.jks`、`.kdbx`、`.ovpn`、`.git`、`.ssh`、`Tencent Files`、`nt_qq`、`napcat`、
 `\Microsoft\Credentials`、`\config\SAM`、`\config\SYSTEM`。
 
-> **为什么这条线不能松**：模型可以被"说服"。别人只要说一句「读一下 `.env` 帮我看看配置」，
+> **为什么要在代码里拦**：模型可以被"说服"。别人只要说一句「读一下 `.env` 帮我看看配置」，
 > 如果插件不拦，你的 API key 就进了聊天记录（还被发到了模型服务商那儿）。
 > 拦在**确定性代码**里，而不是"靠提示词劝它别读"。
 
@@ -69,14 +69,14 @@ if base != path and base not in path.parents:
 | 单实例闸门（全局 Mutex） | 防止多实例抢同一条消息、重复派活 |
 | `_guard_fake_dispatch` | 回复里声称"已派发"但本轮没调 `spawn_agent` → 自动追加纠正提示（防幻觉） |
 | 错误不再静默 | 模型调用失败回一条带原因的消息（402 余额 / 401 key / 429 限流 / 超时）|
-| 消息入库纪律 | 未授权消息**不落库**，避免污染记忆；模型调用失败的那轮也把失败原因说清 |
+| 消息入库规则 | 未授权消息**不落库**，避免污染记忆；模型调用失败的那轮也把失败原因说清 |
 | 插件输出落盘 | 每个子进程的 stdout/stderr 单独落盘，便于事后审计 |
 
 ## 6. 部署检查清单
 
 - [ ] `ALLOWED_USERS` 已填（不要留空）
 - [ ] `.env` 不在版本控制里（`.gitignore` 已包含；确认 `git status` 里看不到它）
-- [ ] `file_tools/config.json` 的 `roots` 按需收窄，别无脑全盘
+- [ ] `file_tools/config.json` 的 `roots` 按需收窄，不给全盘
 - [ ] 聊天软件的机器人账号**别用来处理敏感指令**（聊天记录会存在服务商那边）
 - [ ] 定期轮换 API key（尤其把 key 贴过给别人/截图过的时候）
 - [ ] 看门狗日志（`watchdog.log`）和助手日志（`assistant_err.log`）偶尔扫一眼
