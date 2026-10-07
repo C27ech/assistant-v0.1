@@ -12,7 +12,7 @@
 | **file_tools** | [`file_tools/`](file_tools/) | `read_file` `list_dir` `find_files` `grep_files` | 纯标准库 | 读本机文本 / 列目录 / 找文件 / 搜内容；**敏感文件拦截** |
 | **web_tools** | [`web_tools/`](web_tools/) | `web_search` `fetch_page` | requests, bs4, playwright | 联网搜索（学术自动改道 + 垃圾站过滤）+ 无头浏览器读正文 |
 | **controller_v2** | [`controller_v2/`](controller_v2/) | `desktop_task_v2` | requests, pillow, pyautogui, pynput, pywin32 | 自然语言操作 Windows 桌面（接口优先 + 视觉兜底） |
-| **screenshot2qq** | [`screenshot2qq/`](screenshot2qq/) | `send_screenshot` `list_windows` `list_monitors` | pillow, websocket-client | 截全屏 / 指定窗口 / 某台显示器 / 一块区域并直接发到你的 QQ 私聊；图过大自动缩小；含分辨率/缩放自适应 |
+| **screenshot2qq** | [`screenshot2qq/`](screenshot2qq/) | `send_screenshot` `list_windows` `list_monitors` | pillow, websocket-client | 截全屏 / 指定窗口 / 某台显示器 / 一块区域并直接发到 QQ 私聊；图过大自动缩小；含分辨率/缩放自适应 |
 
 > 每个插件目录里都有自己的 README，写了用法、参数和已知问题。
 
@@ -60,6 +60,6 @@ mkdir plugins\my_plugin
 
 **开工前先想三个问题**：
 
-1. 这个能力**该不该**给助手？（想想别人能不能借它读你的密钥）
+1. 这个能力**该不该**给助手？（想想别人能不能借它读本机密钥）
 2. `description` 里怎么让模型**只在正确的场景**调用它？
 3. 输出会不会**太长**？（长输出 = 贵 + 慢；必要时截断并提示续读方式）

@@ -1,7 +1,7 @@
 # Supervisor 调用链 + Watchdog 进程模型侦查报告
 
 > 只读侦查报告。本报告未修改/移动/删除 `C:\path\to\assistant_v0.1\assistant\` 下任何现有文件，
-> 也未修改旧控制器 `C:\Users\<你的用户名>\Desktop\controller\` 下任何现有文件。
+> 也未修改旧控制器 `C:\Users\<用户名>\Desktop\controller\` 下任何现有文件。
 > 唯一持久化产出是本报告及其所在 `controller_v2\docs\` 目录。
 
 ---
@@ -11,8 +11,8 @@
 1. **supervisor 位置**：`C:\path\to\assistant_v0.1\assistant\`，核心调用文件是
    `supervisor\runtime.py`；入口是 `main.py`，工具定义在 `supervisor\decision.py`。
 2. **调用 controller 的方式**：不是常驻服务调用，而是 `subprocess.run` **同步拉起子进程**：
-   - `desktop_command` → `python C:\Users\<你的用户名>\Desktop\controller\main.py --command "<指令>" --yes`
-   - `multimodal_task` → `python C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py "<指令>" [--look|--plan]`
+   - `desktop_command` → `python C:\Users\<用户名>\Desktop\controller\main.py --command "<指令>" --yes`
+   - `multimodal_task` → `python C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py "<指令>" [--look|--plan]`
    两者都 `timeout=300`、`capture_output=True`，在 supervisor 主进程内**阻塞等待**。
 3. **「未知错误」字面量**出现位置：
    - `supervisor\runtime.py:172`（`_run_desktop_command`）
@@ -74,7 +74,7 @@ C:\path\to\assistant_v0.1\assistant\
 ### 2.2 controller（旧桌面控制器，被 supervisor 调用）
 
 ```
-C:\Users\<你的用户名>\Desktop\controller\
+C:\Users\<用户名>\Desktop\controller\
 ├── main.py                    # 单次闭环入口：python main.py --command "..." --yes
 ├── multimodal_bridge.py       # 多模态桥接入口：单行 JSON 输出
 ├── config.json                # 控制器自身配置（模型档位/确认/风险等）
@@ -115,7 +115,7 @@ C:\Users\<你的用户名>\Desktop\controller\
 
 - 空指令：`runtime.py:146-147` 返回 `"[桌面控制器] 指令为空"`。
 - 读取配置：`runtime.py:148` 取 `settings.desktop_controller_dir`
-  （来自 `.env` 的 `DESKTOP_CONTROLLER_DIR=C:\Users\<你的用户名>\Desktop\controller`，默认回退
+  （来自 `.env` 的 `DESKTOP_CONTROLLER_DIR=C:\Users\<用户名>\Desktop\controller`，默认回退
   `Path.home()/Desktop/controller`，见 `config\settings.py` 的 `desktop_controller_dir` 加载行）。
 - 未配置：`runtime.py:149-150` 返回 `"[桌面控制器不可用] 未配置 DESKTOP_CONTROLLER_DIR"`。
 - 检查 `controller_dir\main.py` 存在：`runtime.py:151-153`。
@@ -138,7 +138,7 @@ subprocess.run(
 即实际命令行：
 
 ```text
-python C:\Users\<你的用户名>\Desktop\controller\main.py --command "<instruction>" --yes
+python C:\Users\<用户名>\Desktop\controller\main.py --command "<instruction>" --yes
 ```
 
 参数契约：
@@ -198,9 +198,9 @@ subprocess.run(
 即实际命令行：
 
 ```text
-python C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py "<instruction>"        # execute
-python C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py "<instruction>" --look # look
-python C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py "<instruction>" --plan # plan
+python C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py "<instruction>"        # execute
+python C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py "<instruction>" --look # look
+python C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py "<instruction>" --plan # plan
 ```
 
 返回处理：
@@ -217,7 +217,7 @@ python C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py "<inst
 
 ### 3.4 multimodal_task 的桥接实现与返回结构
 
-文件：`C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py`
+文件：`C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py`
 
 - 取 `argv[0]` 作为 instruction；`--look`/`--decide` → `mode="next"`，`--plan` → `mode="plan"`，
   否则 `mode="execute"`（`multimodal_bridge.py:26-37`）。
@@ -281,7 +281,7 @@ function Get-AssistantProc {
 **误杀链条**：
 
 1. supervisor 调 `desktop_command` 时，`runtime.py` 用 `subprocess.run` 拉起
-   `python C:\Users\<你的用户名>\Desktop\controller\main.py --command ... --yes`。
+   `python C:\Users\<用户名>\Desktop\controller\main.py --command ... --yes`。
 2. 该 controller 子进程的命令行**包含 `main.py`**，被
    `Get-AssistantProc` 的 `'main\.py'` 正则**误当成 assistant 主进程**。
 3. 此时 `$procs.Count == 2`（assistant 主进程 + controller 子进程），watchdog 进入 duplicate 清理。
@@ -311,7 +311,7 @@ function Get-AssistantProc {
 - 把 `Get-AssistantProc` 改为精确匹配 assistant 主进程，例如同时校验
   `$_.CommandLine` 匹配完整路径 `C:\path\to\assistant_v0.1\assistant\main.py` 且包含 `--channel qq`，
   或校验 `ExecutablePath`/`WorkingDirectory`/`ParentProcessId`。
-- duplicate 判定应排除 controller 子进程（命令行含 `C:\Users\<你的用户名>\Desktop\controller\` 或
+- duplicate 判定应排除 controller 子进程（命令行含 `C:\Users\<用户名>\Desktop\controller\` 或
   `controller_v2\` 的进程不参与 assistant duplicate 清理）。
 - 强杀前记录完整命令行，便于事后审计。
 - 可考虑把 watchdog 换成 Python 版（新代码放 `controller_v2` 或独立目录），
@@ -378,7 +378,7 @@ function Get-AssistantProc {
 
 ## 6. decision_server 127.0.0.1:8765 的启动与调用方式
 
-- 定义：`C:\Users\<你的用户名>\Desktop\controller\decision\server.py`，
+- 定义：`C:\Users\<用户名>\Desktop\controller\decision\server.py`，
   `app = FastAPI(...)`（`decision\server.py:149`）。
 - 显式启动（`if __name__ == "__main__"`）：`uvicorn.run(app, host="127.0.0.1", port=8765)`
   （`decision\server.py:970-971`）。即：
@@ -445,13 +445,13 @@ uvicorn decision.server:app --host 0.0.0.0 --port 8000   # 生产/局域网
 - `C:\path\to\assistant_v0.1\assistant\watchdog.log`
 - `C:\path\to\assistant_v0.1\assistant\agents\worker.py`
 - `C:\path\to\assistant_v0.1\assistant\channel\qq_onebot.py`（部分）
-- `C:\Users\<你的用户名>\Desktop\controller\main.py`
-- `C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py`
-- `C:\Users\<你的用户名>\Desktop\controller\decision\server.py`
-- `C:\Users\<你的用户名>\Desktop\controller\config.json`
-- `C:\Users\<你的用户名>\Desktop\controller\README.md`（部分）
-- `C:\Users\<你的用户名>\Desktop\controller\install.bat`
-- 目录清单：`C:\path\to\assistant_v0.1\assistant\`、`...\supervisor\`、`C:\Users\<你的用户名>\Desktop\controller\`
+- `C:\Users\<用户名>\Desktop\controller\main.py`
+- `C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py`
+- `C:\Users\<用户名>\Desktop\controller\decision\server.py`
+- `C:\Users\<用户名>\Desktop\controller\config.json`
+- `C:\Users\<用户名>\Desktop\controller\README.md`（部分）
+- `C:\Users\<用户名>\Desktop\controller\install.bat`
+- 目录清单：`C:\path\to\assistant_v0.1\assistant\`、`...\supervisor\`、`C:\Users\<用户名>\Desktop\controller\`
   及其 `decision\`、`perception\`、`action\`、`common\` 子目录。
 
 ## 9. 本次创建的文件/文件夹路径

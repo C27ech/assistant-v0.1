@@ -19,7 +19,7 @@
 ## 用法
 
 ```bash
-# 使用 config.json 中的默认配置（把 config.json 里的 user_id 改成你自己的 QQ 号），截所有显示器
+# 使用 config.json 中的默认配置（把 config.json 里的 user_id 改成目标 QQ 号），截所有显示器
 python main.py
 
 # 覆盖目标 QQ 号
@@ -65,7 +65,7 @@ python main.py --target active --scale 0.5
 python main.py --target active --max-width 1600 --format JPEG --quality 70
 
 # 7) 只截图不发 QQ，并另存一份到指定目录（文件会保留）
-python main.py --target window --window "微信" --no-send --out "C:\Users\<你的用户名>\Desktop"
+python main.py --target window --window "微信" --no-send --out "C:\Users\<用户名>\Desktop"
 python main.py --target active --out "C:\temp\shot.png"
 
 # 8) 截图前先把窗口切到前台（默认不动用户桌面）

@@ -105,7 +105,7 @@ SQLite 表：`users` `messages` `tasks` `subtasks` `agents` `events` `decisions`
 - `assistant_watchdog.ps1`：每 15 秒检查 → 挂了拉起 → 检测到多实例只记录不擅杀 → 写 `watchdog.log`
 - `runtime/assistant.pid.json`：PID 名册，供看门狗识别
 
-## 6. 数据流：代码 AI 事件怎么回到你
+## 6. 数据流：代码 AI 事件怎么回到使用者
 
 ```
 worker 子进程 → events 表（status/reason）
@@ -115,5 +115,5 @@ worker 子进程 → events 表（status/reason）
       ▼
 决策 AI（带着「请继续推进用户的原始任务」的指令）→ 可能再派下一只 → 或收尾汇报
       ▼
-_send() → 渠道 → 你手机上看到
+_send() → 渠道 → 使用者手机上看到
 ```

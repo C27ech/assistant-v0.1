@@ -9,18 +9,18 @@ cd /d C:\path\to\assistant_v0.1/plugins/file_tools
 
 :: 读文件（相对路径以第一个根目录为准；也可传绝对路径）
 python main.py read "笔记.md"
-python main.py read "C:\Users\<你的用户名>\Desktop\笔记.md" --start 200 --lines 100
+python main.py read "C:\Users\<用户名>\Desktop\笔记.md" --start 200 --lines 100
 
 :: 列目录
-python main.py list "C:\Users\<你的用户名>\Desktop"
+python main.py list "C:\Users\<用户名>\Desktop"
 python main.py list . --all
 
 :: 按文件名找
 python main.py find "*.md"
-python main.py find "*报告*" --root "C:\Users\<你的用户名>\Desktop" --n 40
+python main.py find "*报告*" --root "C:\Users\<用户名>\Desktop" --n 40
 
 :: 在文件内容里搜（正则，返回 文件:行号: 内容）
-python main.py grep "TODO" --root "C:\Users\<你的用户名>\Desktop" --ext .py,.md --n 30
+python main.py grep "TODO" --root "C:\Users\<用户名>\Desktop" --ext .py,.md --n 30
 ```
 
 ## 安全设计（三层）
@@ -29,7 +29,7 @@ python main.py grep "TODO" --root "C:\Users\<你的用户名>\Desktop" --ext .py
 
 | 层 | 规则 | 说明 |
 |----|------|------|
-| **① 可读范围** | `config.json` → `roots`：`["*"]` = **整台电脑**（自动枚举所有盘，实测识别到 C/D/E/F）；也可写成具体目录列表 | 想收窄就改成 `["C:\Users\<你的用户名>\Desktop"]` |
+| **① 可读范围** | `config.json` → `roots`：`["*"]` = **整台电脑**（自动枚举所有盘，实测识别到 C/D/E/F）；也可写成具体目录列表 | 想收窄就改成 `["C:\Users\<用户名>\Desktop"]` |
 | **② 敏感文件黑名单** | 命中即拒，**即使文件在被允许的盘上也读不到** | 内置在代码里，**只可追加、不可取消** |
 | **③ 体积 / 类型限制** | 跳过 >8MB 与二进制文件；输出截断到 12000 字并可分块续读 | 防止读爆上下文、拖慢回复 |
 
@@ -65,7 +65,7 @@ python main.py grep "TODO" --root "C:\Users\<你的用户名>\Desktop" --ext .py
 ……（本次已截断；文件还有内容。用 --start 512 继续读下一段，或先用 --lines 指定更小的行数。）
 ```
 
-助手看到提示就能自己用 `--start 512` 接着读，不用你操心。
+助手看到提示就能自己用 `--start 512` 接着读，无需人工操心。
 
 ## 想扩大可读范围
 
@@ -74,7 +74,7 @@ python main.py grep "TODO" --root "C:\Users\<你的用户名>\Desktop" --ext .py
 ```json
 {
   "roots": [
-    "C:\Users\<你的用户名>\Desktop",
+    "C:\Users\<用户名>\Desktop",
     "D:/我的项目"
   ]
 }
@@ -87,7 +87,7 @@ python main.py grep "TODO" --root "C:\Users\<你的用户名>\Desktop" --ext .py
 | 配置项 | 默认 | 作用 |
 |--------|------|------|
 | `roots` | `["*"]` | 可读范围；`"*"`=整台电脑，也可写具体目录列表 |
-| `default_path` | `C:\Users\<你的用户名>\Desktop` | 不给路径时的默认起点 |
+| `default_path` | `C:\Users\<用户名>\Desktop` | 不给路径时的默认起点 |
 | `max_file_mb` | 8 | 超过就不读 |
 | `max_output_chars` | 12000 | 单次输出上限（超出截断，可分块续读）|
 | `max_list_entries` | 200 | 列目录最多显示多少项 |

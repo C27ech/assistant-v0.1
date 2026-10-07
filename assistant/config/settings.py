@@ -49,9 +49,9 @@ def _parse_list(raw: str) -> list:
     return [p.strip() for p in parts if p.strip()]
 
 
-# 模型名一律「通配」：代码不校验、不列举、不做前缀判断，你填什么就用什么。
+# 模型名一律「通配」：代码不校验、不列举、不做前缀判断，填什么就用什么。
 #   "*"（或留空）= 通配：不指定具体型号 —— 请求里干脆不带 model 字段，
-#                        由你的端点/网关用自己的默认模型；
+#                        由接入端点/网关使用其默认模型；
 #   其他任意字符串   = 具体型号，原样透传给端点。
 ANY_MODEL = "*"
 
@@ -175,7 +175,7 @@ class Settings:
 
         模型名只用来「选端点」：命中 doubao_model_patterns（默认 `doubao-*`）走火山方舟 Ark，
         其余（含通配 `*` / 留空）走 DeepSeek，并按角色选 key。
-        型号本身不做任何校验 —— 你填什么就透传什么，代码不限定具体模型。
+        型号本身不做任何校验 —— 填什么就透传什么，代码不限定具体模型。
         """
         for pattern in self.doubao_model_patterns or []:
             if model_matches(pattern, model):

@@ -30,7 +30,7 @@
 
 ## 1. 目录结构树
 
-控制器本体位于：`C:\Users\<你的用户名>\Desktop\controller\`
+控制器本体位于：`C:\Users\<用户名>\Desktop\controller\`
 
 ```text
 controller\
@@ -410,28 +410,28 @@ Key 校验：`ark-` 前缀且长度 ≥ 20（`vision.py:176-179`）。缺 Key �
 
 以下为本次实际读取/分析的文件（全部只读）：
 
-- `C:\Users\<你的用户名>\Desktop\controller\config.json`
-- `C:\Users\<你的用户名>\Desktop\controller\main.py`
-- `C:\Users\<你的用户名>\Desktop\controller\multimodal_bridge.py`
-- `C:\Users\<你的用户名>\Desktop\controller\display_scale.py`
-- `C:\Users\<你的用户名>\Desktop\controller\requirements.txt`
-- `C:\Users\<你的用户名>\Desktop\controller\install.bat`
-- `C:\Users\<你的用户名>\Desktop\controller\experience.json`（顶层结构/条目抽样）
-- `C:\Users\<你的用户名>\Desktop\controller\common\config.py`
-- `C:\Users\<你的用户名>\Desktop\controller\common\text_utils.py`
-- `C:\Users\<你的用户名>\Desktop\controller\perception\perception.py`
-- `C:\Users\<你的用户名>\Desktop\controller\perception\screen_capture.py`
-- `C:\Users\<你的用户名>\Desktop\controller\perception\vision.py`（全文 1494 行）
-- `C:\Users\<你的用户名>\Desktop\controller\decision\decision.py`（关键段落：防逞强/坐标/锚点/AND/precheck/decide_multimodal）
-- `C:\Users\<你的用户名>\Desktop\controller\decision\experience.py`（关键段落：关键词/打分/匹配/propose/锚点）
-- `C:\Users\<你的用户名>\Desktop\controller\decision\memory.py`（头部职责说明）
-- `C:\Users\<你的用户名>\Desktop\controller\decision\server.py`（run_command/_run_single_step/坐标适配/路由）
-- `C:\Users\<你的用户名>\Desktop\controller\decision\trial_loop.py`（头部职责说明）
-- `C:\Users\<你的用户名>\Desktop\controller\action\action.py`（坐标换算/execute 白名单/屏幕尺寸）
-- `C:\Users\<你的用户名>\Desktop\controller\action\safety.py`（头部职责说明）
+- `C:\Users\<用户名>\Desktop\controller\config.json`
+- `C:\Users\<用户名>\Desktop\controller\main.py`
+- `C:\Users\<用户名>\Desktop\controller\multimodal_bridge.py`
+- `C:\Users\<用户名>\Desktop\controller\display_scale.py`
+- `C:\Users\<用户名>\Desktop\controller\requirements.txt`
+- `C:\Users\<用户名>\Desktop\controller\install.bat`
+- `C:\Users\<用户名>\Desktop\controller\experience.json`（顶层结构/条目抽样）
+- `C:\Users\<用户名>\Desktop\controller\common\config.py`
+- `C:\Users\<用户名>\Desktop\controller\common\text_utils.py`
+- `C:\Users\<用户名>\Desktop\controller\perception\perception.py`
+- `C:\Users\<用户名>\Desktop\controller\perception\screen_capture.py`
+- `C:\Users\<用户名>\Desktop\controller\perception\vision.py`（全文 1494 行）
+- `C:\Users\<用户名>\Desktop\controller\decision\decision.py`（关键段落：防逞强/坐标/锚点/AND/precheck/decide_multimodal）
+- `C:\Users\<用户名>\Desktop\controller\decision\experience.py`（关键段落：关键词/打分/匹配/propose/锚点）
+- `C:\Users\<用户名>\Desktop\controller\decision\memory.py`（头部职责说明）
+- `C:\Users\<用户名>\Desktop\controller\decision\server.py`（run_command/_run_single_step/坐标适配/路由）
+- `C:\Users\<用户名>\Desktop\controller\decision\trial_loop.py`（头部职责说明）
+- `C:\Users\<用户名>\Desktop\controller\action\action.py`（坐标换算/execute 白名单/屏幕尺寸）
+- `C:\Users\<用户名>\Desktop\controller\action\safety.py`（头部职责说明）
 - `C:\path\to\assistant_v0.1\assistant\supervisor\runtime.py`（subprocess 调用点，全文）
 - `C:\path\to\assistant_v0.1\assistant\config\settings.py`（desktop_controller_dir 配置段）
-- `C:\Users\<你的用户名>\Desktop\迁移说明.md`（迁移说明，确认目录关系）
+- `C:\Users\<用户名>\Desktop\迁移说明.md`（迁移说明，确认目录关系）
 
 （目录遍历还枚举了 `controller`、`controller_v2`、`Assistant` 下所有相关文件以定位，
 未对系统内任何业务文件做修改。）

@@ -49,7 +49,7 @@ DEFAULT_CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
 DEFAULTS = {
     "ws_url": "ws://127.0.0.1:3001",
     "token": "",
-    # 改成你自己的 QQ 号（也可以用 config.json 或命令行覆盖）。
+    # 改成目标 QQ 号（也可以用 config.json 或命令行覆盖）。
     # 0 表示未配置，运行时会直接报错提醒，不会误发。
     "user_id": 0,
     "delete_temp_files": True,
@@ -161,7 +161,7 @@ def load_config(args):
 
     # 不发送时（--no-send / 只查询）不强制要求配置 user_id，方便先试截图
     if not getattr(args, "no_send", False) and cfg["user_id"] <= 0:
-        log("user_id 必须为正整数，当前为 %r（先在 config.json 里填你自己的 QQ 号）" % cfg["user_id"])
+        log("user_id 必须为正整数，当前为 %r（先在 config.json 里填目标 QQ 号）" % cfg["user_id"])
         return None
 
     cfg["ws_url"] = str(cfg["ws_url"] or "")
